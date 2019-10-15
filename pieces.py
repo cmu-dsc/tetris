@@ -2,8 +2,8 @@ import numpy as np
 from piece import Piece
 
 class I(Piece):
+    _color = '5FFBFD'
     def __init__(self):
-        self._color = '5FFBFD'
         # Initial position as defined in: https://tetris.wiki/SRS
         self._grid = np.array(
             [[False, False, False, False],
@@ -13,8 +13,8 @@ class I(Piece):
         )
 
 class J(Piece):
+    _color = '0029F5'
     def __init__(self):
-        self._color = '0029F5'
         # Initial position as defined in: https://tetris.wiki/SRS
         self._grid = np.array(
             [[True,  False, False],
@@ -23,8 +23,8 @@ class J(Piece):
         )
 
 class L(Piece):
+    _color = 'F8AC3A'
     def __init__(self):
-        self._color = 'F8AC3A'
         # Initial position as defined in: https://tetris.wiki/SRS
         self._grid = np.array(
             [[False, False, True],
@@ -33,26 +33,26 @@ class L(Piece):
         )
 
 class O(Piece):
+    _color = 'FFFC52'
     def __init__(self):
-        self._color = 'FFFC52'
         # Initial position as defined in: https://tetris.wiki/SRS
         self._grid = np.array(
             [[False, True,  True,  False],
              [False, True,  True,  False],
              [False, False, False, False]]
         )
-    def rotate_left(self):
+    def rotate_ccw(self):
         # Does nothing to the piece
         pass
         # or return self, return grid, etc. depending on how we code the rest
-    def rotate_right(self):
+    def rotate_cw(self):
         # Does nothing to the piece
         pass
         # or return self, return grid, etc. depending on how we code the rest
 
 class S(Piece):
+    _color = '65F84B'
     def __init__(self):
-        self._color = '65F84B'
         # Initial position as defined in: https://tetris.wiki/SRS
         self._grid = np.array(
             [[False, True,  True],
@@ -61,8 +61,8 @@ class S(Piece):
         )
 
 class T(Piece):
+    _color = '8D34F6'
     def __init__(self):
-        self._color = '8D34F6'
         # Initial position as defined in: https://tetris.wiki/SRS
         self._grid = np.array(
             [[False, True,  False],
@@ -71,8 +71,8 @@ class T(Piece):
         )
 
 class Z(Piece):
+    _color = 'F2361F'
     def __init__(self):
-        self._color = 'F2361F'
         # Initial position as defined in: https://tetris.wiki/SRS
         self._grid = np.array(
             [[True,  True,  False],
