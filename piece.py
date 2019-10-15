@@ -2,13 +2,13 @@ import numpy as np
 
 # Abstract base class for tetrominos
 class Piece:
-    def __init__(self):
+    def __init__(self, coords):
         # A boolean matrix in the piece's own local coordinate system.
         # The I piece needs 4x4, the O needs 3x4, and the rest need 3x3.
         # Defined by: https://tetris.wiki/images/3/3d/SRS-pieces.png
         self._grid = None
         # 2-tuple, i.e. (row coordinate, column coordinate)
-        self._coords = None
+        self._coords = coords
     # A hexidecimal color string. Color should be the same for each instance,
     # therefore we make it a static variable.
     _color = None
