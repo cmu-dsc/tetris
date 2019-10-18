@@ -47,5 +47,8 @@ class PlayfieldController:
             # If the _active_piece is None, start the game by genarating the active piece
             # and the next piece class objects, and instantiate the active piece with
             # initial coordinates.
+            if self._active_piece == None:
+                self._active_piece = self._next_piece(23, 3)
+                self._next_piece = self._gen_next_piece()
     def gamestate(self):
         return GameState(self._playfield, self._active_piece, self._next_piece)
