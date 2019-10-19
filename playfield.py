@@ -26,6 +26,13 @@ class Playfield:
         returns: True if the placement is legal (fits), and False if it is not. The piece is
         not placed if the move is not legal.
         '''
+
+        '''
+        Two things to check for: On Board and Overlap
+        OnBoard: Valid coordinate for board with padding accounted for
+        Overlap: Take a subset of the gameboard based of modified "coord" value in the controller
+                 use numpy to "and" both arrays. If array returns all falses, then there is no overlap
+        '''
         # Note that coordinates can (and sometimes must) be negative.
         # Hint: a boolean 'and' will check for overlap
         raise NotImplementedError
