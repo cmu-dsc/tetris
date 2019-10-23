@@ -40,6 +40,13 @@ class Playfield:
         '''
         # Note that coordinates can (and sometimes must) be negative.
         raise NotImplementedError
+    def clear_filled_rows(self):
+        '''
+        Updates board with rows cleared and blocks shifted downward
+        accordingly.
+        '''
+        raise NotImplementedError
+
     def get_bool_board(self):
         '''
         returns: a numpy boolean array representing the board.
