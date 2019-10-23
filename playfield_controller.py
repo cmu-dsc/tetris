@@ -38,7 +38,7 @@ class PlayfieldController:
             self.update()
             self.move_left()
     def move_right(self):
-        Has the effect of pressing right on the controller.
+        '''Has the effect of pressing right on the controller.'''
         try:
             if self._playfield.is_legal_move(self._active_piece,
                                             (self._active_piece.coords[0] + 1,
@@ -78,8 +78,8 @@ class PlayfieldController:
                                       [(-1,  0), (-1, -1), ( 0,  2), (-1,  2)]]
                 for test in [0, 1, 2, 3]:
                     if self._playfield.is_legal_move(self._active_piece,
-                             (self._active_piece.coords[0] + wall_kick_data[orientation][test][0]],
-                              self._active_piece.coords[1] + wall_kick_data[orientation][test][1]]):
+                             (self._active_piece.coords[0] + wall_kick_data[orientation][test][0],
+                              self._active_piece.coords[1] + wall_kick_data[orientation][test][1])):
                         break # stop the tests, keep the rotation
                     elif test == 3:
                         # If we've gone through all the tests and
@@ -117,8 +117,8 @@ class PlayfieldController:
                                       [(-2,  0), ( 1,  0), (-2, -1), ( 1,  2)]]
                 for test in [0, 1, 2, 3]:
                     if self._playfield.is_legal_move(self._active_piece,
-                             (self._active_piece.coords[0] + wall_kick_data[orientation][test][0]],
-                              self._active_piece.coords[1] + wall_kick_data[orientation][test][1]]):
+                             (self._active_piece.coords[0] + wall_kick_data[orientation][test][0],
+                              self._active_piece.coords[1] + wall_kick_data[orientation][test][1])):
                         break # stop the tests, keep the rotation
                     elif test == 3:
                         # If we've gone through all the tests and
