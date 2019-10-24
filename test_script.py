@@ -10,7 +10,6 @@ pc._playfield.insert_piece(O((3,-1)),(3,-1))
 pc._playfield.insert_piece(O((5,-1)),(5,-1))
 pc._rng_queue = np.array([O])
 pc.update()
-gs = pc.gamestate()
 pc.move_right()
 pc.move_right()
 pc.move_right()
@@ -20,6 +19,7 @@ pc.move_right()
 pc.move_right()
 for i in range(20):
     pc.update()
+    gs = pc.gamestate()
     gs.plot()
 while not pc.game_over:
     # num_moves = randint(5)
@@ -28,16 +28,20 @@ while not pc.game_over:
         move = randint(0,4)
         if move == 0:
             pc.move_left()
+            gs = pc.gamestate()
             gs.plot()
         elif move == 1:
             pc.move_right()
+            gs = pc.gamestate()
             gs.plot()
         elif move == 1:
             pc.rotate_cw()
+            gs = pc.gamestate()
             gs.plot()
         elif move == 3:
             pc.rotate_ccw()
+            gs = pc.gamestate()
             gs.plot()
     pc.update()
-    
+    gs = pc.gamestate()
     gs.plot()
