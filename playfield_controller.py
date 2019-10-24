@@ -1,7 +1,7 @@
 from gamestate import GameState
 from pieces import *
 from playfield import Playfield
-from numpy import random
+import numpy as np
 import warnings
 
 class PlayfieldController:
@@ -11,21 +11,20 @@ class PlayfieldController:
         self._playfield = Playfield()
         self._score = 0
         self._game_over = False
-        self._rng_queue = [] # for _gen_next_piece: we generate a queue of all
-                             # 7 pieces, shuffled, and sample as needed. When
-                             # the queue is empty, regenerate it.
-    def _gen_next_piece(self):
+        self._rng_queue = np.array([]) # for _gen_next_piece_class: we generate a queue of all
+                                       # 7 pieces, shuffled, and sample as needed. When
+                                       # the queue is empty, regenerate it.
+    def _gen_next_piece_class(self):
         # based on rng algorithm described in https://tetris.fandom.com/wiki/Random_Generator
-        if not self._rng_queue: # if the queue is empty
-            self._rng_queue = random.permutation([I, J, L, O, S, T, Z])
-        else:
-            self._next_piece = self._rng_queue[0]
-            self._rng_queue = np.delete(self._rng_queue, 0)
+        if self._rng_queue.size == 0: # if the queue is empty
+            self._rng_queue = np.random.permutation([I, J, L, O, S, T, Z])
+        self._next_piece_class = self._rng_queue[0]
+        self._rng_queue = np.delete(self._rng_queue, 0)
 
     # These four methods should perform the necessary checking, and transform the active
     # piece according to the official Tetris rules.
     def move_left(self):
-        # Has the effect of pressing left on the controller.
+        ''' Has the effect of pressing left on the controller.'''
         try:
             if self._playfield.is_legal_move(self._active_piece,
                                             (self._active_piece.coords[0] - 1,
@@ -134,12 +133,12 @@ class PlayfieldController:
     # This dictionary defines the initial coordinates for each type of piece.
     # There are contradicting definitions for this, so we need to figure out which
     # we will stick with.
-    initial_coords = {I : (3, 20), J : (3, 21), L : (3, 21), O : (3, 21),
-                      S : (3, 21), T : (3, 21), Z : (3, 21)}
+    initial_coords = {I : (3, 17), J : (3, 17), L : (3, 17), O : (3, 17),
+                      S : (3, 17), T : (3, 17), Z : (3, 17)}
     def update(self):
         '''
         Has the effect of updating the game state. This either means moving the piece down,
-        locking in the piece and dropping the new piece/generating a new self._next_piece,
+        locking in the piece and dropping the new piece/generating a new self._next_piece_class,
         or ending the game.
         
         Return True or False depending on if the game is over.
@@ -154,38 +153,37 @@ class PlayfieldController:
             # and the next piece class objects, and instantiate the active piece with
             # initial coordinates.
             if self._active_piece == None:
-                self._gen_next_piece()
-                self._active_piece = self._next_piece(initial_coords[self._next_piece])
-                self._gen_next_piece()
+                self._gen_next_piece_class()
+                self._active_piece = self._next_piece_class(self.initial_coords[self._next_piece_class])
+                self._gen_next_piece_class()
             # If we're able to move down, move the active piece one row down.
             if self._playfield.is_legal_move(self._active_piece,
                                                  (self._active_piece.coords[0],
                                                   self._active_piece.coords[1] - 1)):
-                self._active_piece.coords((self._active_piece.coords[0],
-                                           self._active_piece.coords[1] - 1))
+                self._active_piece.coords = (self._active_piece.coords[0],
+                                             self._active_piece.coords[1] - 1)
+            # Otherwise, place the piece, etc.
             else:
-                # If we can't move down and the row is greater than the top row, then game over
-                if self._active_piece.coords[1] > 19:
+                self._playfield.insert_piece(self._active_piece, self._active_piece.coords)
+                # clear completed rows if necessary
+                points = [40, 100, 300,  1200] # number of points awarded for each
+                                                # successively cleared row
+                # This clears filled rows and drops pieces as necessary. Returns
+                # number of rows cleared.
+                num_cleared = self._playfield.clear_filled_rows()
+                assert(num_cleared >= 0)
+                self._score += points[num_cleared - 1]
+                # Drop the next piece
+                self._active_piece = self._next_piece_class(self.initial_coords[self._next_piece_class])
+                self._gen_next_piece_class()
+                # If we can't place the piece, game over
+                if not self._playfield.is_legal_move(self._active_piece, self._active_piece.coords):
                     self._game_over = True
                     return True
-                # Otherwise:
-                else:
-                    self._playfield.insert_piece(self._active_piece, self._active_piece.coords)
-                    # clear completed rows if necessary
-                    points = [40, 100, 300,  1200] # number of points awarded for each
-                                                   # successively cleared row
-                    # This clears filled rows and drops pieces as necessary
-                    num_cleared = self._playfield.clear_filled_rows()
-                    assert(num_cleared >= 0)
-                    # When pieces are dropped, additional rows may fill up and need cleared.
-                    while num_cleared:
-                        assert(num_cleared >= 0 and num_cleared < 5)
-                        self._score += points[num_cleared - 1]
-                        num_cleared = self._playfield.clear_filled_rows()
-                    # Drop the next piece
-                    self._active_piece = self._next_piece(self._initial_coords[self._next_piece])
-                    self._gen_next_piece()
             # The game has not ended. Return false.
             return False
     def gamestate(self):
-        return GameState(self._playfield, self._active_piece, self._next_piece)
+        return GameState(self._playfield, self._active_piece, self._next_piece_class)
+    @property
+    def game_over(self):
+        return self._game_over

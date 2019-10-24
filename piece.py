@@ -17,25 +17,28 @@ class Piece(object):
     # A hexidecimal color string. Color should be the same for each instance,
     # therefore we make it a static variable.
     _color = None
-    @staticmethod
+    @classmethod
     def color(cls):
         if cls._color is None:
             raise NotImplementedError('Tried to call method on instance of abstract base class Piece.')
         elif cls._color is '000000':
             raise RuntimeError('No class derived from Piece can have the color 0x000000.')
         return cls._color
+        
     # Rotate counter-clockwise w.r.t. local coords
     def rotate_ccw(self):
         # "Virtual" method
         if self._grid is not None:
             self._grid = np.rot90(self._grid, k=1)
             self._orientation = (self._orientation + 1) % 4
+        return self
     # Rotate clockwise w.r.t. local coords
     def rotate_cw(self):
         # "Virtual" method
         if self._grid is not None:
             self._grid = np.rot90(self._grid, k=-1)
             self._orientation = (self._orientation - 1) % 4
+        return self
     @property
     def coords(self):
         return self._coords
