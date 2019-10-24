@@ -33,5 +33,4 @@ class GameState:
         im = np.array([[hex_to_rgb(block) for block in row] for row in board])
         im = np.rot90(im, k = 1)
         plt.imshow(im)
-        inp = input('Enter to display plot, any key to quit.')
         plt.show()
