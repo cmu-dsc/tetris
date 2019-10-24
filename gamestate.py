@@ -32,5 +32,6 @@ class GameState:
             np.where(active_piece != '000000', active_piece, b)
         im = np.array([[hex_to_rgb(block) for block in row] for row in board])
         im = np.rot90(im, k = 1)
+        im = im[4:-4, 4:-4]
         plt.imshow(im)
         plt.show()

@@ -55,7 +55,7 @@ class PlayfieldController:
         # Read about wall kicks here: https://tetris.wiki/SRS#Wall_Kicks
         # O tetrominos don't rotate
         if isinstance(self._active_piece, O):
-            pass
+            return
         # Try a basic rotation
         try:
             orientation = self._active_piece.orientation
@@ -79,7 +79,11 @@ class PlayfieldController:
                     if self._playfield.is_legal_move(self._active_piece,
                              (self._active_piece.coords[0] + wall_kick_data[orientation][test][0],
                               self._active_piece.coords[1] + wall_kick_data[orientation][test][1])):
-                        break # stop the tests, keep the rotation
+                        # stop the tests, keep the rotation
+                        self._active_piece.coords =\
+                            (self._active_piece.coords[0] + wall_kick_data[orientation][test][0],
+                              self._active_piece.coords[1] + wall_kick_data[orientation][test][1])
+                        break
                     elif test == 3:
                         # If we've gone through all the tests and
                         # no wall kick yields a legal rotation,
@@ -94,7 +98,7 @@ class PlayfieldController:
         '''Has the effect of pressing rotate-counterclockwise on the controller.'''
         # Read about wall kicks here: https://tetris.wiki/SRS#Wall_Kicks
         if isinstance(self._active_piece, O):
-            pass
+            return
         # Try a basic rotation
         try:
             orientation = self._active_piece.orientation
@@ -118,7 +122,10 @@ class PlayfieldController:
                     if self._playfield.is_legal_move(self._active_piece,
                              (self._active_piece.coords[0] + wall_kick_data[orientation][test][0],
                               self._active_piece.coords[1] + wall_kick_data[orientation][test][1])):
-                        break # stop the tests, keep the rotation
+                        # stop the tests, keep the rotation
+                        self._active_piece.coords =\
+                            (self._active_piece.coords[0] + wall_kick_data[orientation][test][0],
+                              self._active_piece.coords[1] + wall_kick_data[orientation][test][1])
                     elif test == 3:
                         # If we've gone through all the tests and
                         # no wall kick yields a legal rotation,

@@ -21,10 +21,11 @@ for i in range(20):
     pc.update()
     gs = pc.gamestate()
     gs.plot()
-while True:
-    num_moves = randint(5)
+while not pc.game_over:
+    # num_moves = randint(5)
+    num_moves = 1
     for i in range(num_moves):
-        move = randint(0,3)
+        move = randint(0,4)
         if move == 0:
             pc.move_left()
             gs = pc.gamestate()
@@ -33,7 +34,7 @@ while True:
             pc.move_right()
             gs = pc.gamestate()
             gs.plot()
-        elif move == 2:
+        elif move == 1:
             pc.rotate_cw()
             gs = pc.gamestate()
             gs.plot()
