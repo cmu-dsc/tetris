@@ -140,8 +140,8 @@ class PlayfieldController:
     # This dictionary defines the initial coordinates for each type of piece.
     # There are contradicting definitions for this, so we need to figure out which
     # we will stick with.
-    initial_coords = {I : (3, 17), J : (3, 17), L : (3, 17), O : (3, 17),
-                      S : (3, 17), T : (3, 17), Z : (3, 17)}
+    initial_coords = {I : (3, 17), J : (3, 18), L : (3, 18), O : (3, 18),
+                      S : (3, 18), T : (3, 18), Z : (3, 18)}
     def update(self):
         '''
         Has the effect of updating the game state. This either means moving the piece down,

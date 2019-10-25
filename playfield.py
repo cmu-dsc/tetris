@@ -4,12 +4,10 @@
 # reserved for empty grid cells.
 #
 # Coordinate definitions:
-#    The board coordinates are defined in matrix-convention, with the origin at the
-#    top-left of the board.
-#    
-#    The local piece coordinates are defined in matrix-convention, with the origin at the
-#    top-left of the piece's grid.
-# 
+#    Cartesian coordinates, with the origin at the lower-left.
+#    The first array index is the horizontal coordinate (x),
+#    and the second array index is the vertical coordinate (y).
+#    This is in contrast to matrix convention.
 import numpy as np
 class Playfield:
     def __init__(self):
@@ -38,10 +36,10 @@ class Playfield:
             for y in range(0, grid.shape[1]):
                 x_lab = x + coords[0]
                 y_lab = y + coords[1]
-                if (x_lab < 0 or x_lab > 9 or y_lab < 0 or y_lab > 19):
+                if (x_lab < 0 or x_lab > 9 or y_lab < 0 or y_lab > 20):
                     if piece.grid[x, y]:
                         return False
-                else:
+                elif y_lab != 20:
                     temp_board[x_lab, y_lab] = piece.grid[x, y]
         return not np.any(np.logical_and(self.get_bool_board(), temp_board))
     def insert_piece(self, piece, coords):
