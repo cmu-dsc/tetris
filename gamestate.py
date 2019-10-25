@@ -1,4 +1,5 @@
 # This is the object which will serve as the interface to our data analysis code.
+from copy import deepcopy
 import matplotlib.pyplot as plt
 import numpy as np
 # credit https://gist.github.com/matthewkremer/3295567
@@ -8,9 +9,9 @@ def hex_to_rgb(hex):
      return tuple(int(hex[i:i+hlen//3], 16) for i in range(0, hlen, hlen//3))
 class GameState:
     def __init__(self, playfield, active_piece, next_piece):
-        self._playfield = playfield
-        self._active_piece = active_piece
-        self._next_piece = next_piece
+        self._playfield = deepcopy(playfield)
+        self._active_piece = deepcopy(active_piece)
+        self._next_piece = deepcopy(next_piece)
     def plot(self):
         # pad the board
         board = np.full((18, 28), '000000', dtype = '<U6')
