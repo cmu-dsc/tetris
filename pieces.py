@@ -10,7 +10,7 @@ class I(Piece):
             [[False, False, False, False],
              [True,  True,  True,  True],
              [False, False, False, False],
-             [False, False, False, False]]), k =- 1
+             [False, False, False, False]]), k = -1
         )
 
 class J(Piece):

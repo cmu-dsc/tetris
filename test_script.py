@@ -17,7 +17,7 @@ pc.move_right()
 pc.move_right()
 pc.move_right()
 pc.move_right()
-for i in range(20):
+for i in range(100):
     pc.update()
     gs = pc.gamestate()
     gs.plot()
