@@ -59,41 +59,43 @@ class PlayfieldController:
         # Try a basic rotation
         try:
             orientation = self._active_piece.orientation
-            if self._playfield.is_legal_move(self._active_piece.rotate_cw(),
-                                            self._active_piece.coords):
-                    pass # nothing to do, we already rotated the piece
-            # Try wall kicks: https://tetris.wiki/SRS#Wall_Kicks
-            else:
-                if isinstance(self._active_piece, I): # I tetrominos have their own wall
-                                                      # kick rules.
-                    wall_kick_data = [[(-2,  0), ( 1,  0), (-2, -1), ( 1,  2)],
-                                      [(-1,  0), ( 2,  0), (-1, +2), ( 2, -1)],
-                                      [( 2,  0), (-1,  0), ( 2,  1), (-1, -2)],
-                                      [( 1,  0), (-2,  0), ( 1, -2), (-2,  1)]]
-                else:
-                    wall_kick_data = [[(-1,  0), (-1,  1), ( 0, -2), (-1, -2)],
-                                      [( 1,  0), ( 1, -1), ( 0,  2), ( 1,  2)],
-                                      [( 1,  0), ( 1,  1), ( 0, -2), ( 1, -2)],
-                                      [(-1,  0), (-1, -1), ( 0,  2), (-1,  2)]]
-                for test in [0, 1, 2, 3]:
-                    if self._playfield.is_legal_move(self._active_piece,
-                             (self._active_piece.coords[0] + wall_kick_data[orientation][test][0],
-                              self._active_piece.coords[1] + wall_kick_data[orientation][test][1])):
-                        # stop the tests, keep the rotation
-                        self._active_piece.coords =\
-                            (self._active_piece.coords[0] + wall_kick_data[orientation][test][0],
-                              self._active_piece.coords[1] + wall_kick_data[orientation][test][1])
-                        break
-                    elif test == 3:
-                        # If we've gone through all the tests and
-                        # no wall kick yields a legal rotation,
-                        # rotate our piece back.
-                        self._active_piece.rotate_ccw()
         except AttributeError:
             warnings.warn('Tried to rotate cw before starting the game. Starting game.',
                           RuntimeWarning)
             self.update()
             self.rotate_cw()
+        if self._playfield.is_legal_move(self._active_piece.rotate_cw(),
+                                        self._active_piece.coords):
+                pass # nothing to do, we already rotated the piece
+        # Try wall kicks: https://tetris.wiki/SRS#Wall_Kicks
+        else:
+            if isinstance(self._active_piece, I): # I tetrominos have their own wall
+                                                    # kick rules.
+                wall_kick_data = [[(-2,  0), ( 1,  0), (-2, -1), ( 1,  2)],
+                                  [(-1,  0), ( 2,  0), (-1, +2), ( 2, -1)],
+                                  [( 2,  0), (-1,  0), ( 2,  1), (-1, -2)],
+                                  [( 1,  0), (-2,  0), ( 1, -2), (-2,  1)]]
+            else:
+                wall_kick_data = [[(-1,  0), (-1,  1), ( 0, -2), (-1, -2)],
+                                  [( 1,  0), ( 1, -1), ( 0,  2), ( 1,  2)],
+                                  [( 1,  0), ( 1,  1), ( 0, -2), ( 1, -2)],
+                                  [(-1,  0), (-1, -1), ( 0,  2), (-1,  2)]]
+            for test in [0, 1, 2, 3]:
+                if self._playfield.is_legal_move(self._active_piece,
+                            (self._active_piece.coords[0] + wall_kick_data[orientation][test][0],
+                            self._active_piece.coords[1] + wall_kick_data[orientation][test][1])):
+                    # stop the tests, keep the rotation
+                    self._active_piece.coords =\
+                        (self._active_piece.coords[0] + wall_kick_data[orientation][test][0],
+                            self._active_piece.coords[1] + wall_kick_data[orientation][test][1])
+                    break
+                else:
+                    if test == 3:
+                        # If we've gone through all the tests and
+                        # no wall kick yields a legal rotation,
+                        # rotate our piece back.
+                        self._active_piece.rotate_ccw()
+
     def rotate_ccw(self):
         '''Has the effect of pressing rotate-counterclockwise on the controller.'''
         # Read about wall kicks here: https://tetris.wiki/SRS#Wall_Kicks
@@ -102,40 +104,42 @@ class PlayfieldController:
         # Try a basic rotation
         try:
             orientation = self._active_piece.orientation
-            if self._playfield.is_legal_move(self._active_piece.rotate_ccw(),
-                                            self._active_piece.coords):
-                    pass # nothing to do, we already rotated the piece
-            # Try wall kicks: https://tetris.wiki/SRS#Wall_Kicks
-            else:
-                if isinstance(self._active_piece, I): # I tetrominos have their own wall
-                                                      # kick rules.
-                    wall_kick_data = [[( 1,  0), ( 1,  1), ( 0, -2), ( 1, -2)],
-                                      [( 1,  0), ( 1, -1), ( 0,  2), ( 1,  2)],
-                                      [(-1,  0), (-1,  1), ( 0, -2), (-1, -2)],
-                                      [( 1,  0), ( 1,  1), ( 0, -2), ( 1,  1)]]
-                else:
-                    wall_kick_data = [[(-1,  0), ( 2,  0), (-1,  2), ( 2, -1)],
-                                      [( 2,  0), (-1,  0), ( 2,  1), (-1, -2)],
-                                      [( 1,  0), (-2,  0), ( 1, -2), (-2,  1)],
-                                      [(-2,  0), ( 1,  0), (-2, -1), ( 1,  2)]]
-                for test in [0, 1, 2, 3]:
-                    if self._playfield.is_legal_move(self._active_piece,
-                             (self._active_piece.coords[0] + wall_kick_data[orientation][test][0],
-                              self._active_piece.coords[1] + wall_kick_data[orientation][test][1])):
-                        # stop the tests, keep the rotation
-                        self._active_piece.coords =\
-                            (self._active_piece.coords[0] + wall_kick_data[orientation][test][0],
-                              self._active_piece.coords[1] + wall_kick_data[orientation][test][1])
-                    elif test == 3:
-                        # If we've gone through all the tests and
-                        # no wall kick yields a legal rotation,
-                        # rotate our piece back.
-                        self._active_piece.rotate_cw()
         except AttributeError:
             warnings.warn('Tried to rotate ccw before starting the game. Starting game.',
                           RuntimeWarning)
             self.update()
             self.rotate_ccw()
+        if self._playfield.is_legal_move(self._active_piece.rotate_ccw(),
+                                        self._active_piece.coords):
+                pass # nothing to do, we already rotated the piece
+        # Try wall kicks: https://tetris.wiki/SRS#Wall_Kicks
+        else:
+            if isinstance(self._active_piece, I): # I tetrominos have their own wall
+                                                    # kick rules.
+                wall_kick_data = [[(-1,  0), ( 2,  0), (-1,  2), ( 2, -1)],
+                                    [( 2,  0), (-1,  0), ( 2,  1), (-1, -2)],
+                                    [( 1,  0), (-2,  0), ( 1, -2), (-2,  1)],
+                                    [(-2,  0), ( 1,  0), (-2, -1), ( 1,  2)]]
+            else:
+                wall_kick_data = [[( 1,  0), ( 1,  1), ( 0, -2), ( 1, -2)],
+                                    [( 1,  0), ( 1, -1), ( 0,  2), ( 1,  2)],
+                                    [(-1,  0), (-1,  1), ( 0, -2), (-1, -2)],
+                                    [(-1,  0), (-1, -1), ( 0,  2), (-1,  2)]]
+            for test in [0, 1, 2, 3]:
+                if self._playfield.is_legal_move(self._active_piece,
+                            (self._active_piece.coords[0] + wall_kick_data[orientation][test][0],
+                            self._active_piece.coords[1] + wall_kick_data[orientation][test][1])):
+                    # stop the tests, keep the rotation
+                    self._active_piece.coords =\
+                        (self._active_piece.coords[0] + wall_kick_data[orientation][test][0],
+                            self._active_piece.coords[1] + wall_kick_data[orientation][test][1])
+                    break
+                else:
+                    if test == 3:
+                        # If we've gone through all the tests and
+                        # no wall kick yields a legal rotation,
+                        # rotate our piece back.
+                        self._active_piece.rotate_cw()
 
     # This dictionary defines the initial coordinates for each type of piece.
     # There are contradicting definitions for this, so we need to figure out which

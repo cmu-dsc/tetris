@@ -30,14 +30,14 @@ class Piece(object):
         # "Virtual" method
         if self._grid is not None:
             self._grid = np.rot90(self._grid, k=1)
-            self._orientation = (self._orientation + 1) % 4
+            self._orientation = (self._orientation - 1) % 4
         return self
     # Rotate clockwise w.r.t. local coords
     def rotate_cw(self):
         # "Virtual" method
         if self._grid is not None:
             self._grid = np.rot90(self._grid, k=-1)
-            self._orientation = (self._orientation - 1) % 4
+            self._orientation = (self._orientation + 1) % 4
         return self
     @property
     def coords(self):
