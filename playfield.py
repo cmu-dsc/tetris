@@ -36,10 +36,10 @@ class Playfield:
             for y in range(0, grid.shape[1]):
                 x_lab = x + coords[0]
                 y_lab = y + coords[1]
-                if (x_lab < 0 or x_lab > 9 or y_lab < 0 or y_lab > 20):
+                if (x_lab < 0 or x_lab > 9 or y_lab < 0 or y_lab > 19):
                     if piece.grid[x, y]:
                         return False
-                elif y_lab != 20:
+                else:
                     temp_board[x_lab, y_lab] = piece.grid[x, y]
         return not np.any(np.logical_and(self.get_bool_board(), temp_board))
     def insert_piece(self, piece, coords):
@@ -58,6 +58,8 @@ class Playfield:
                     x_lab = x + coords[0]
                     y_lab = y + coords[1]
                     if piece.grid[x, y]:
+                        if x_lab < 0 or x_lab > 9 or y_lab < 0 or y_lab > 19:
+                            raise RuntimeError("Tried to place a block of a %s piece at coordinates (%d, %d) in rotated position %d! Piece coordinates are (%d, %d)" % (str(type(piece)), x_lab, y_lab, piece.orientation, coords[0], coords[1]))
                         self._board[x_lab, y_lab] = piece.color()
             return True
         return False

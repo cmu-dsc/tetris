@@ -2,7 +2,9 @@ from playfield_controller import PlayfieldController
 from gamestate import *
 from playfield import *
 from playfield_controller import *
+import numpy.random
 from numpy.random import randint
+np.random.seed(1)
 pc = PlayfieldController()
 pc._playfield.insert_piece(O((-1,-1)),(-1,-1))
 pc._playfield.insert_piece(O((1,-1)),(1,-1))
