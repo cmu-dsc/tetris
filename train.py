@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 from torch.distributions import Categorical
 import numpy as np
+import os
 
 gamma = 0.95
 num_episode = 1000
@@ -21,14 +22,13 @@ for e in range(num_episode):
     pc = PlayfieldController()
     pc.update()
     prev_score = 0
+    count = 0
     while True:
         gs = pc.gamestate()
-        #gs.plot()
         board_state = get_board_state(gs).unsqueeze(0)
         piece_state = get_piece_state(gs).unsqueeze(0)
         prob_action = model(board_state, piece_state)
         action = Categorical(logits = prob_action).sample()
-        action = 0
         if action == 0:
             pc.rotate_ccw()
         elif action == 1:
@@ -43,6 +43,8 @@ for e in range(num_episode):
         state_pool.append((board_state, piece_state))
         action_pool.append(action)
         reward_pool.append(reward)
+        gs.plot('figs/im%d.png' % count)
+        count += 1
         if pc._game_over:
             break
 
@@ -71,3 +73,5 @@ for e in range(num_episode):
         state_pool = []
         action_pool = []
         reward_pool = []
+    os.system('convert -delay 5 -loop 0 %s %d.gif' % (''.join(['figs/im%d.png ' % i for i in range(count + 1)]), e))
+    os.system('rm figs/*')
