@@ -57,7 +57,7 @@ for e in range(num_episode):
                 reward_pool[i] = prev_reward
         reward_mean = np.mean(reward_pool)
         reward_std = np.std(reward_pool)
-        print(reward_mean)
+        print(reward_mean, flush=True)
         for i in range(len(reward_pool)):
             reward_pool[i] = (reward_pool[i] - reward_mean) / reward_std
             
@@ -73,5 +73,5 @@ for e in range(num_episode):
         state_pool = []
         action_pool = []
         reward_pool = []
-    os.system('convert -delay 5 -loop 0 %s %d.gif' % (''.join(['figs/im%d.png ' % i for i in range(count + 1)]), e))
-    os.system('rm figs/*')
+        os.system('convert -delay 5 -loop 0 %s %d.gif' % (''.join(['figs/im%d.png ' % i for i in range(count)]), e))
+        os.system('rm figs/*')
