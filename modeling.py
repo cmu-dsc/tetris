@@ -8,7 +8,6 @@ def get_inactive_board(gamestate):
 
 def get_active_board(gamestate):
     playfield = Playfield()
-    print(gamestate._active_piece.coords)
     playfield.insert_piece(gamestate._active_piece, gamestate._active_piece.coords)
     return playfield.get_bool_board().astype(float)
 
