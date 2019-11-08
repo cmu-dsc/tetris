@@ -177,13 +177,13 @@ class PlayfieldController:
             else:
                 self._playfield.insert_piece(self._active_piece, self._active_piece.coords)
                 # clear completed rows if necessary
-                points = [40, 100, 300,  1200] # number of points awarded for each
-                                                # successively cleared row
+                points = [0, 40, 100, 300,  1200] # number of points awarded for each
+                                                  # successively cleared row
                 # This clears filled rows and drops pieces as necessary. Returns
                 # number of rows cleared.
                 num_cleared = self._playfield.clear_filled_rows()
-                assert(num_cleared >= 0)
-                self._score += points[num_cleared - 1]
+                assert(num_cleared >= 0 and num_cleared < 5)
+                self._score += points[num_cleared]
                 # Drop the next piece
                 self._active_piece = self._next_piece_class(self.initial_coords[self._next_piece_class])
                 self._gen_next_piece_class()
