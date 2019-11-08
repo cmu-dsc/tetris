@@ -43,8 +43,8 @@ for e in range(num_episode):
         state_pool.append((board_state, piece_state))
         action_pool.append(action)
         reward_pool.append(reward)
-        if e % pool_size == pool_size - 1:
-            gs.plot('figs/im%d.png' % count)
+        # if e % pool_size == pool_size - 1:
+        #     gs.plot('figs/im%d.png' % count)
         count += 1
         if pc._game_over:
             break
@@ -74,5 +74,5 @@ for e in range(num_episode):
         state_pool = []
         action_pool = []
         reward_pool = []
-        os.system('convert -delay 5 -loop 0 %s %d.gif' % (''.join(['figs/im%d.png ' % i for i in range(count)]), e))
-        os.system('rm figs/*')
+        # os.system('convert -delay 5 -loop 0 %s %d.gif' % (''.join(['figs/im%d.png ' % i for i in range(count)]), e))
+        # os.system('rm figs/*')
