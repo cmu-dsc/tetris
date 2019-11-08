@@ -12,7 +12,8 @@ class GameState:
         self._playfield = deepcopy(playfield)
         self._active_piece = deepcopy(active_piece)
         self._next_piece = deepcopy(next_piece)
-    def plot(self):
+    def plot(self, filename=None):
+        # filename is the name of the image to save
         # pad the board
         board = np.full((18, 28), '000000', dtype = '<U6')
         board[4:14, 4:24] = self._playfield.board
@@ -35,4 +36,7 @@ class GameState:
         im = np.rot90(im, k = 1)
         im = im[4:-4, 4:-4]
         plt.imshow(im)
-        plt.show()
+        if filename is None:
+            plt.show()
+        else:
+            plt.savefig(filename)
