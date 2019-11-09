@@ -30,11 +30,20 @@ for e in range(num_episode):
         prob_action = model(board_state, piece_state)
         action = Categorical(logits = prob_action).sample()
         if action == 0:
+            pass
+        elif action < 6:
+            for i in range(action):
+                pc.move_right()
+        elif action < 11:
+            for i in range(action - 5):
+                pc.move_left()
+        elif action == 11:
+            pc.rotate_cw()
+        elif action == 12:
+            pc.rotate_cw()
+            pc.rotate_cw()
+        elif action == 13:
             pc.rotate_ccw()
-        elif action == 1:
-            pc.move_left()
-        elif action == 2:
-            pc.move_right()
         pc.update()
         reward = pc._score - prev_score
         prev_score = pc._score
@@ -43,8 +52,8 @@ for e in range(num_episode):
         state_pool.append((board_state, piece_state))
         action_pool.append(action)
         reward_pool.append(reward)
-        # if e % pool_size == pool_size - 1:
-        #     gs.plot('figs/im%d.png' % count)
+        if e % pool_size == pool_size - 1:
+            gs.plot('figs/im%d.png' % count)
         count += 1
         if pc._game_over:
             break
@@ -74,5 +83,5 @@ for e in range(num_episode):
         state_pool = []
         action_pool = []
         reward_pool = []
-        # os.system('convert -delay 5 -loop 0 %s %d.gif' % (''.join(['figs/im%d.png ' % i for i in range(count)]), e))
-        # os.system('rm figs/*')
+        os.system('convert -delay 5 -loop 0 %s %d.gif' % (''.join(['figs/im%d.png ' % i for i in range(count)]), e))
+        os.system('rm figs/*')

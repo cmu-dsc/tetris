@@ -44,7 +44,7 @@ class Model(nn.Module):
         self.conv1 = nn.Conv2d(2,4,3,2,1)
         self.conv2 = nn.Conv2d(4,8,3,2,1)
         self.fc1 = nn.Linear(127,100)
-        self.fc2 = nn.Linear(100,4)
+        self.fc2 = nn.Linear(100, 14)
     def forward(self, board, piece):
         board = self.conv1(board)
         board = self.relu(board)
