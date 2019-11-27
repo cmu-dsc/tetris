@@ -16,7 +16,25 @@ def get_active_board(gamestate):
 def get_board_state(gamestate):
     return torch.stack((torch.tensor(get_inactive_board(gamestate)), torch.tensor(get_active_board(gamestate)))).float()
 
-def get_piece(gamestate, piece):
+def get_next_piece_index(gamestate):
+    piece = gamestate._next_piece
+    if piece is pieces.I:
+        return 0
+    if piece is pieces.J:
+        return 1
+    if piece is pieces.L:
+        return 2
+    if piece is pieces.O:
+        return 3
+    if piece is pieces.S:
+        return 4
+    if piece is pieces.T:
+        return 5
+    if piece is pieces.Z:
+        return 6
+
+def get_current_piece_index(gamestate):
+    piece = gamestate._active_piece
     if isinstance(piece, pieces.I):
         return 0
     if isinstance(piece, pieces.J):
@@ -32,16 +50,15 @@ def get_piece(gamestate, piece):
     if isinstance(piece, pieces.Z):
         return 6
 
-def get_piece_state(gamestate, piece):
+def get_current_piece(gamestate):
     result = torch.zeros(7).float()
-    result[get_piece(gamestate, piece)] = 1.0
+    result[get_current_piece_index(gamestate)] = 1.0
     return result
 
 def get_next_piece(gamestate):
-    return get_piece_state(gamestate, gamestate._next_piece)
-
-def get_current_piece(gamestate):
-    return get_piece_state(gamestate, gamestate._active_piece)
+    result = torch.zeros(7).float()
+    result[get_next_piece_index(gamestate)] = 1.0
+    return result
 
 def get_raw_state(gamestate):
     board_state = get_inactive_board(gamestate)
@@ -119,3 +136,29 @@ class Model2(nn.Module):
         state = self.relu(state)
         state = self.fc3(state)
         return state
+
+
+class ResNet(nn.Module):
+    def __init__(self, state_size=216, action_size=4, hidden_size=1024, num_hidden=2):
+        super().__init__()
+        self.relu = nn.ReLU()
+        self.fc_in = nn.Linear(state_size, hidden_size)
+        self.bn = nn.BatchNorm1d(hidden_size)
+        self.hiddens = nn.ModuleList([])
+        for _ in range(num_hidden):
+            self.hiddens.append(nn.Sequential(
+                nn.Linear(hidden_size, hidden_size),
+                nn.BatchNorm1d(hidden_size),
+                nn.ReLU(True)))
+        self.fc_out = nn.Linear(hidden_size, action_size)
+
+    def forward(self, x):
+        x = self.fc_in(x)
+        x = self.bn(x)
+        x = self.relu(x)
+        for hidden in self.hiddens:
+            out = hidden(x)
+            x = out
+        out = self.fc_out(out)
+        return out
+    

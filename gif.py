@@ -11,6 +11,7 @@ from PIL import Image
 from PIL import ImageFont
 
 model = torch.load("model.pth")
+model.eval()
 pc = PlayfieldController()
 pc.update()
 count = 0

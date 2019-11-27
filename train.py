@@ -13,16 +13,16 @@ from PIL import ImageFont
 gamma = 0.95
 num_episode = 1000000000
 pool_size = 10
-criterion = nn.CrossEntropyLoss()
-model = torch.load("model2.pth")#Model2()
-optim = torch.optim.Adam(model.parameters(), lr=0.1)
+criterion = nn.CrossEntropyLoss(reduction='none')
+model = ResNet()
+optim = torch.optim.Adam(model.parameters(), lr=0.0001)
+batch_size = 65536
 
 state_pool = []
 action_pool = []
 reward_pool = []
-num_pos = 0
 
-max_step = 1000
+max_step = 10000
 for e in range(num_episode):
     pc = PlayfieldController()
     pc.update()
@@ -30,6 +30,7 @@ for e in range(num_episode):
     prev_pieces = 0
     prev_closed_spaces = 0
     step = 0
+    model.eval()
     while not pc._game_over and step < max_step:
         for i in range(5):
             gs = pc.gamestate()
@@ -56,19 +57,19 @@ for e in range(num_episode):
         change_pieces = pieces - prev_pieces
         closed_spaces = get_enclosed_space(gs)
         change_closed_spaces = closed_spaces - prev_closed_spaces
-        reward = (pc._score - prev_score) * 10 + change_closed_spaces * -10 + change_pieces
+        reward = (pc._score - prev_score) * 10 - change_closed_spaces * 2 + change_pieces
         prev_pieces = pieces
         prev_score = pc._score
         prev_closed_spaces = closed_spaces
         step+=1
-        if pc._game_over or step == 500:
+        if pc._game_over or step == max_step:
             reward = "game_over"
         state_pool.append(state)
         action_pool.append(action)
         reward_pool.append(reward)
         
         
-    
+    model.train()
     if e % pool_size == pool_size - 1:
         for i in reversed(range(len(reward_pool))):
             if reward_pool[i] == "game_over":
@@ -78,7 +79,7 @@ for e in range(num_episode):
             reward_pool[i] = prev_reward
         reward_mean = np.mean(reward_pool)
         reward_std = np.std(reward_pool)
-        print("%d games played. Current reward pool mean: %f" % ((e+1), reward_mean))
+        print("%d games played. Current reward pool mean: %f. Number of States %d" % ((e+1), reward_mean, len(reward_pool)))
         if reward_std == 0.0:
             print("0.0 std. Skipped")
             continue
@@ -88,14 +89,14 @@ for e in range(num_episode):
             
 
         optim.zero_grad()
-        for i in range(len(reward_pool)):
+        for i in range(0, len(reward_pool), batch_size):
             if reward_pool[i] == 0.0:
                 continue
             #board_state, piece_state = state_pool[i]
-            state = state_pool[i]
-            action = torch.tensor([action_pool[i]]).long()
-            reward = torch.tensor(reward_pool[i]).float().unsqueeze(0)
-            loss = criterion(model(state), action) * reward
+            state = torch.cat(state_pool[i:min(len(state_pool),i+batch_size)])
+            action = torch.tensor(action_pool[i:min(len(action_pool),i+batch_size)]).long()
+            reward = torch.tensor(reward_pool[i:min(len(reward_pool),i+batch_size)]).float()
+            loss = torch.sum(criterion(model(state), action) * reward)
             loss.backward()
         optim.step()
         state_pool = []
@@ -103,4 +104,4 @@ for e in range(num_episode):
         reward_pool = []
 
         torch.save(model, "model.pth")
-    
+
