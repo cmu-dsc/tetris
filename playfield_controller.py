@@ -17,7 +17,7 @@ class PlayfieldController:
     def _gen_next_piece_class(self):
         # based on rng algorithm described in https://tetris.fandom.com/wiki/Random_Generator
         if self._rng_queue.size == 0: # if the queue is empty
-            self._rng_queue = np.random.permutation([I, J, L, O, S, T, Z])
+            self._rng_queue = np.random.permutation([O])
         self._next_piece_class = self._rng_queue[0]
         self._rng_queue = np.delete(self._rng_queue, 0)
 

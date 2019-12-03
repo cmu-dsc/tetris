@@ -13,8 +13,9 @@ from PIL import ImageFont
 gamma = 0.95
 num_episode = 1000000000
 pool_size = 10
-criterion = nn.CrossEntropyLoss(reduction='none')
-model = ResNet()
+#criterion = nn.CrossEntropyLoss(reduction='none')
+model = ResNetWithoutBN()
+model.apply(init_weights)
 optim = torch.optim.Adam(model.parameters(), lr=0.0001)
 batch_size = 65536
 
@@ -96,7 +97,7 @@ for e in range(num_episode):
             state = torch.cat(state_pool[i:min(len(state_pool),i+batch_size)])
             action = torch.tensor(action_pool[i:min(len(action_pool),i+batch_size)]).long()
             reward = torch.tensor(reward_pool[i:min(len(reward_pool),i+batch_size)]).float()
-            loss = torch.sum(criterion(model(state), action) * reward)
+            loss = torch.sum( -Categorical(logits = model(state)).log_prob(action) * reward)
             loss.backward()
         optim.step()
         state_pool = []
