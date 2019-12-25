@@ -17,7 +17,7 @@ class PlayfieldController:
     def _gen_next_piece_class(self):
         # based on rng algorithm described in https://tetris.fandom.com/wiki/Random_Generator
         if self._rng_queue.size == 0: # if the queue is empty
-            self._rng_queue = np.random.permutation([I, J, L, O, S, T, Z])
+            self._rng_queue = np.random.permutation([O])
         self._next_piece_class = self._rng_queue[0]
         self._rng_queue = np.delete(self._rng_queue, 0)
 
@@ -182,6 +182,8 @@ class PlayfieldController:
                 # This clears filled rows and drops pieces as necessary. Returns
                 # number of rows cleared.
                 num_cleared = self._playfield.clear_filled_rows()
+                # if num_cleared > 0:
+                #     print('I cleared a line!')
                 assert(num_cleared >= 0 and num_cleared < 5)
                 self._score += points[num_cleared]
                 # Drop the next piece
