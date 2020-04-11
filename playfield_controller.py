@@ -182,6 +182,8 @@ class PlayfieldController:
                 # This clears filled rows and drops pieces as necessary. Returns
                 # number of rows cleared.
                 num_cleared = self._playfield.clear_filled_rows()
+                # if num_cleared > 0:
+                #     print('I cleared a line!')
                 assert(num_cleared >= 0 and num_cleared < 5)
                 self._score += points[num_cleared]
                 # Drop the next piece

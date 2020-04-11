@@ -135,7 +135,7 @@ class Model2(nn.Module):
         self.relu = nn.ReLU()
         self.fc1 = nn.Linear(216, 432)
         self.fc2 = nn.Linear(432, 862)
-        self.fc3 = nn.Linear(862, 4)
+        self.fc3 = nn.Linear(862, 7)
 
     def forward(self, state):
         state = self.fc1(state)
@@ -145,9 +145,22 @@ class Model2(nn.Module):
         state = self.fc3(state)
         return state
 
+class Model3(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.relu = nn.ReLU()
+        self.fc1 = nn.Linear(216, 432)
+        self.fc2 = nn.Linear(432, 7)
+
+    def forward(self, state):
+        state = self.fc1(state)
+        state = self.relu(state)
+        state = self.fc2(state)
+        return state
+
 
 class ResNet(nn.Module):
-    def __init__(self, state_size=216, action_size=4, hidden_size=1024, num_hidden=2):
+    def __init__(self, state_size=216, action_size=7, hidden_size=216, num_hidden=2):
         super().__init__()
         self.lrelu = nn.LeakyReLU()
         self.fc_in = nn.Linear(state_size, hidden_size)
