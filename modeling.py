@@ -90,7 +90,15 @@ def get_enclosed_space(gamestate):
     total_spaces = np.sum(1.0 - board_state)
     return total_spaces - open_spaces
 
+def init_weights(m):
+    if type(m) == nn.Linear:
+        nn.init.kaiming_normal_(m.weight, a=0.01, mode='fan_out', nonlinearity='leaky_relu')
+        nn.init.constant_(m.bias, 0)
+    elif isinstance(m, nn.BatchNorm1d):
+        nn.init.constant_(m.weight, 1)
+        nn.init.constant_(m.bias, 0)
 
+            
 class Model(nn.Module):
     def __init__(self):
         super().__init__()
@@ -154,7 +162,7 @@ class Model3(nn.Module):
 class ResNet(nn.Module):
     def __init__(self, state_size=216, action_size=7, hidden_size=216, num_hidden=2):
         super().__init__()
-        self.relu = nn.ReLU()
+        self.lrelu = nn.LeakyReLU()
         self.fc_in = nn.Linear(state_size, hidden_size)
         self.bn = nn.BatchNorm1d(hidden_size)
         self.hiddens = nn.ModuleList([])
@@ -162,16 +170,60 @@ class ResNet(nn.Module):
             self.hiddens.append(nn.Sequential(
                 nn.Linear(hidden_size, hidden_size),
                 nn.BatchNorm1d(hidden_size),
-                nn.ReLU(True)))
+                nn.LeakyReLU(inplace=True)))
         self.fc_out = nn.Linear(hidden_size, action_size)
 
     def forward(self, x):
         x = self.fc_in(x)
         x = self.bn(x)
-        x = self.relu(x)
+        x = self.lrelu(x)
         for hidden in self.hiddens:
             out = hidden(x)
-            x = out
-        out = self.fc_out(out)
+            x = x + out
+        out = self.fc_out(x)
         return out
-    
+
+
+class ResNetWithoutBN(nn.Module):
+    def __init__(self, state_size=216, action_size=4, hidden_size=1024, num_hidden=2):
+        super().__init__()
+        self.lrelu = nn.LeakyReLU()
+        self.fc_in = nn.Linear(state_size, hidden_size)
+        self.hiddens = nn.ModuleList([])
+        for _ in range(num_hidden):
+            self.hiddens.append(nn.Sequential(
+                nn.Linear(hidden_size, hidden_size),
+                nn.LeakyReLU(inplace=True)))
+        self.fc_out = nn.Linear(hidden_size, action_size)
+
+    def forward(self, x):
+        x = self.fc_in(x)
+        x = self.lrelu(x)
+        for hidden in self.hiddens:
+            out = hidden(x)
+            x = x + out
+        out = self.fc_out(x)
+        return out
+
+
+class ANN(nn.Module):
+    def __init__(self, state_size=216, action_size=4, hidden_sizes=[1024]):
+        super().__init__()
+        assert len(hidden_sizes) > 0
+        prev_hidden = hidden_sizes[0]
+        self.lrelu = nn.LeakyReLU()
+        self.fc_in = nn.Linear(state_size, prev_hidden)
+        self.hiddens = nn.ModuleList([])
+        for num_hidden in hidden_sizes[1:]:
+            self.hiddens.append(nn.Sequential(
+                nn.Linear(prev_hidden, num_hidden),
+                nn.LeakyReLU(inplace=True)))
+            prev_hidden = num_hidden
+        self.fc_out = nn.Linear(prev_hidden, action_size)
+    def forward(self, x):
+        x = self.fc_in(x)
+        x = self.lrelu(x)
+        for hidden in self.hiddens: 
+            x = hidden(x)
+        out = self.fc_out(x)
+        return out
