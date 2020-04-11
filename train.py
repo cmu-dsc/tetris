@@ -11,6 +11,11 @@ from PIL import Image
 from PIL import ImageFont
 
 from surface_area import surface_area
+
+from torch.utils.tensorboard import SummaryWriter
+writer = SummaryWriter()
+
+
 gamma = 0.95
 num_episode = 1000000000
 pool_size = 10
@@ -113,6 +118,13 @@ for e in range(num_episode):
             reward = torch.tensor(reward_pool[i:min(len(reward_pool),i+batch_size)]).float()
             loss = torch.sum( -Categorical(logits = model(state)).log_prob(action) * reward)
             loss.backward()
+
+        writer.add_scalar('Reward mean', reward_mean, e)
+        writer.add_scalar('Reward std', reward_std, e)
+        writer.add_scalar('Number of states', len(reward_pool), e)
+        writer.add_scalar('Loss', loss.float(), e)
+        writer.flush()
+        
         optim.step()
         state_pool = []
         action_pool = []
