@@ -19,8 +19,7 @@ writer = SummaryWriter()
 gamma = 0.95
 num_episode = 1000000000
 pool_size = 10
-model = Model2()
-model.apply(init_weights)
+model = ANN(216, 8, [432, 862, 862*2])
 optim = torch.optim.Adam(model.parameters(), lr=0.0005)
 batch_size = 65536
 
@@ -61,10 +60,10 @@ for e in range(num_episode):
         elif action.item() == 5:
             for zzz in range(3):
                 pc.move_right()
-        
+        elif action.item() == 6:
+            pc.rotate_cw()
         pc.update()
         pieces = torch.sum(board_state).item()
-        
         bb = pc._playfield.get_bool_board()
         bb = np.rot90(bb, k = 1)
         max_height = 0
