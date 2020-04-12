@@ -10,21 +10,18 @@ import os
 from PIL import Image
 from PIL import ImageFont
 
-model = torch.load("model2.pth")
+model = ANN(216, 8, [432, 862, 862*2])
 model.eval()
 pc = PlayfieldController()
 pc.update()
 count = 0
 e = 1
 while not pc._game_over:
-    # for i in range(5):
     gs = pc.gamestate()
-    #board_state = get_board_state(gs).unsqueeze(0)
-    #piece_state = get_piece_state(gs).unsqueeze(0)
     state, board_state = get_raw_state(gs)
     state = state.unsqueeze(0)
     prob_action = model(state)
-    action = Categorical(logits = prob_action).sample()
+    action = torch.argmax(prob_action)
     if action.item() == 0:
         for zzz in range(3):
             pc.move_left()
@@ -41,6 +38,8 @@ while not pc._game_over:
     elif action.item() == 5:
         for zzz in range(3):
             pc.move_right()
+    elif action.item() == 6:
+            pc.rotate_cw()
     gs.plot('figs/im%d.jpg' % count)
     count += 1
     pc.update()
