@@ -10,7 +10,7 @@ import os
 from PIL import Image
 from PIL import ImageFont
 
-model = ANN(216, 8, [432, 862, 862*2])
+model = torch.load("DQN.pth")
 model.eval()
 pc = PlayfieldController()
 pc.update()

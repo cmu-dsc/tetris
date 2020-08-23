@@ -3,7 +3,39 @@ from torch import nn
 import torch
 import pieces
 import numpy as np
+from collections import deque
+import random
 
+class ReplayMemory(object):
+    def __init__(self, capacity):
+        self.memory = deque(maxlen=capacity)
+        self.position = 0
+
+    def push(self, state, action, reward, next_state, done):
+        self.memory.append((state, action, reward, next_state, done))
+
+    def sample(self, batch_size):
+        bundle = random.sample(self.memory, batch_size)
+        states = []
+        actions = []
+        rewards = []
+        next_states = []
+        done = []
+        for s, a, r, ns, d in bundle:
+            states.append(s)
+            actions.append(a)
+            rewards.append(r)
+            next_states.append(ns)
+            done.append(d)
+        states = torch.stack(states).float()
+        actions = torch.tensor(actions).long()
+        rewards = torch.tensor(rewards).float()
+        next_states = torch.stack(next_states).float()
+        done = torch.tensor(done).float()
+        return states, actions, rewards, next_states, done
+
+    def __len__(self):
+        return len(self.memory)
 
 def get_inactive_board(gamestate):
     return gamestate._playfield.get_bool_board().astype(float)

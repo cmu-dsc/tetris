@@ -76,7 +76,7 @@ class TetrisApp(App):
         return (r, c)
 
     def appStarted(app):
-        app.model = torch.load("model22.pth")
+        app.model = torch.load("DQN.pth")
         app.model.eval()
 
         app.rows, app.cols, app.cellSize, app.margin = gameDimensions()
@@ -182,13 +182,13 @@ class TetrisApp(App):
             app.fallingPieceIndex = app.nextFallingPieceIndex
         else:
             #randNum = random.randint(0, len(app.tetrisPieces) - 1)
-            randNum = 3
+            randNum = random.sample([0,3],1)[0]
             app.fallingPiece = app.tetrisPieces[randNum]
             app.fallingPieceColor = app.tetrisPieceColors[randNum]
             app.fallingPieceIndex = randNum
         
         #randNum = random.randint(0, len(app.tetrisPieces) - 1)
-        randNum = 3
+        randNum = random.sample([0,3],1)[0]
         app.nextFallingPiece = app.tetrisPieces[randNum]
         app.nextFallingPieceColor = app.tetrisPieceColors[randNum]
         app.nextFallingPieceIndex = randNum
