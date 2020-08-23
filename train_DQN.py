@@ -12,14 +12,14 @@ import random
 from surface_area import surface_area
 
 from torch.utils.tensorboard import SummaryWriter
-writer = SummaryWriter()
+writer = SummaryWriter("runs/DQN-0.001-0.99")
 
 
 gamma = 0.95
 num_episode = 1000000000
 pool_size = 10
 model = ANN(216, 8, [432, 862, 862*2])
-optim = torch.optim.Adam(model.parameters(), lr=0.0005)
+optim = torch.optim.Adam(model.parameters(), lr=0.001)
 replay_size = 65536
 batch_size = 1024
 epsilon = 0.3
@@ -29,6 +29,8 @@ eps_decay = 0.99
 replay_buffer = ReplayMemory(replay_size)
 
 max_step = 10000
+
+counter = 0
 for e in range(num_episode):
     pc = PlayfieldController()
     pc.update()
@@ -40,6 +42,7 @@ for e in range(num_episode):
 
     total_rewards = []
     num_states = 0
+    losses = []
     while not pc._game_over and step < max_step:
         model.eval()
         num_states += 1
@@ -100,8 +103,10 @@ for e in range(num_episode):
         next_state = get_raw_state(pc.gamestate())[0]
 
         replay_buffer.push(state, action, reward, next_state, done)
-        
-        if len(replay_buffer) >= batch_size:
+
+        counter += 1
+        if len(replay_buffer) >= batch_size and counter > 10:
+            counter = 0
             model.train()
             s, a, r, ns, d = replay_buffer.sample(batch_size)
             predicted_Q = model(s).gather(1, a.unsqueeze(1)).squeeze(1)
@@ -110,11 +115,13 @@ for e in range(num_episode):
             optim.zero_grad()
             loss.backward()
             optim.step()
+            losses.append(loss.item())
 
     print("%d games played. Current reward pool mean: %f. Number of States %d" % ((e+1), np.mean(total_rewards), num_states))
     writer.add_scalar('Reward mean', np.mean(total_rewards), e)
     writer.add_scalar('Number of states', num_states, e)
+    writer.add_scalar('Loss mean', np.mean(losses), e)
     writer.flush()
     epsilon = max(epsilon * eps_decay, 0.01)
-    torch.save(model, "DQN_2.pth")
+    torch.save(model, "DQN.pth")
 
