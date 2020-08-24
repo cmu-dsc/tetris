@@ -76,7 +76,7 @@ class TetrisApp(App):
         return (r, c)
 
     def appStarted(app):
-        app.model = torch.load("DQN.pth")
+        app.model = torch.load("DDQN_sparse.pth")
         app.model.eval()
 
         app.rows, app.cols, app.cellSize, app.margin = gameDimensions()
@@ -147,6 +147,8 @@ class TetrisApp(App):
         elif action == 5:
             for zzz in range(3):
                 app.moveFallingPiece(0, -1)
+        elif action == 6:
+            app.rotateFallingPiece()
 
         if(not app.moveFallingPiece(1, 0)):
             # runs when game is not paused or over 
