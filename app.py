@@ -76,7 +76,7 @@ class TetrisApp(App):
         return (r, c)
 
     def appStarted(app):
-        app.model = torch.load("DDQN_sparse.pth")
+        app.model = torch.load("DDQN_sparse_0.999.pth")
         app.model.eval()
 
         app.rows, app.cols, app.cellSize, app.margin = gameDimensions()
@@ -132,22 +132,10 @@ class TetrisApp(App):
 
         action = app.getNextAction()
         if action == 0:
-            for zzz in range(3):
-                app.moveFallingPiece(0, -1)
-        elif action == 1:
-            for zzz in range(2):
-                app.moveFallingPiece(0, -1)
-        elif action == 2:
             app.moveFallingPiece(0, -1)
-        elif action == 3:
+        elif action == 1:
             app.moveFallingPiece(0, 1)
-        elif action == 4:
-            for zzz in range(2):
-                app.moveFallingPiece(0, -1)
-        elif action == 5:
-            for zzz in range(3):
-                app.moveFallingPiece(0, -1)
-        elif action == 6:
+        elif action == 2:
             app.rotateFallingPiece()
 
         if(not app.moveFallingPiece(1, 0)):

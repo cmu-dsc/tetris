@@ -17,7 +17,7 @@ class PlayfieldController:
     def _gen_next_piece_class(self):
         # based on rng algorithm described in https://tetris.fandom.com/wiki/Random_Generator
         if self._rng_queue.size == 0: # if the queue is empty
-            self._rng_queue = np.random.permutation([I,O])
+            self._rng_queue = np.random.permutation([I, J, L, O, S, T, Z]) # [I, J, L, O, S, T, Z]
         self._next_piece_class = self._rng_queue[0]
         self._rng_queue = np.delete(self._rng_queue, 0)
 
@@ -31,6 +31,8 @@ class PlayfieldController:
                                             self._active_piece.coords[1])):
                 self._active_piece.coords =  (self._active_piece.coords[0] - 1,
                                             self._active_piece.coords[1])
+            else:
+                return False
         except AttributeError:
             warnings.warn('Tried to move left before starting the game. Updating game.',
                           RuntimeWarning)
@@ -45,6 +47,8 @@ class PlayfieldController:
                                             ):
                 self._active_piece.coords =  (self._active_piece.coords[0] + 1,
                                             self._active_piece.coords[1])
+            else:
+                return False
         except AttributeError:
             warnings.warn('Tried to move right before starting the game. Statrting game.',
                           RuntimeWarning)
@@ -152,10 +156,10 @@ class PlayfieldController:
         locking in the piece and dropping the new piece/generating a new self._next_piece_class,
         or ending the game.
         
-        Return True or False depending on if the game is over.
+        Return True if a new piece is spawned
         '''
         if self._game_over:
-            return True
+            return False
         else:
             # Proceed...
             # If the action is to end the game, set self._game_over = True and return True.
@@ -173,6 +177,7 @@ class PlayfieldController:
                                                   self._active_piece.coords[1] - 1)):
                 self._active_piece.coords = (self._active_piece.coords[0],
                                              self._active_piece.coords[1] - 1)
+                return False
             # Otherwise, place the piece, etc.
             else:
                 self._playfield.insert_piece(self._active_piece, self._active_piece.coords)
@@ -192,9 +197,8 @@ class PlayfieldController:
                 # If we can't place the piece, game over
                 if not self._playfield.is_legal_move(self._active_piece, self._active_piece.coords):
                     self._game_over = True
-                    return True
-            # The game has not ended. Return false.
-            return False
+                    return False
+                return True
     def gamestate(self):
         return GameState(self._playfield, self._active_piece, self._next_piece_class)
     @property
