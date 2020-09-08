@@ -10,17 +10,21 @@ from torch.utils.data import DataLoader
 import random
 
 
+
+
+
+model = Model9().cuda()
+
+"""
 def f(node, n):
     c = 0
     return node.value + c * np.sqrt(n + 1) / (node.n + 1)
-
-model = Model7().cuda()
-
 pc = PlayfieldController()
 pc.update()
 tree = MCTS( pc=pc, gamma=0.95)
 datasets, reward = tree.generate_a_game(num_iter=200)
-"""
+
+
 np.random.seed(1)
 
 pc = PlayfieldController()
@@ -61,6 +65,7 @@ for node in tree.root.child_nodes:
 print(values)
 
 print(len(tree.make_move_remove_and_dump_unused_branch(0, pc)))
+"""
 
 datasets = []
 for i in range(1):
@@ -70,7 +75,6 @@ for i in range(1):
     tree = MCTS(model=model, pc=pc, gamma=0.95)
     datasets += tree.generate_a_game()[0]
 """
-
 optim = torch.optim.Adam(model.parameters(), lr=0.001)
 random.shuffle(datasets)
 criterion1 = nn.SmoothL1Loss()
@@ -106,8 +110,8 @@ for e in range(1, 100):
     if e % 5 == 0:
         result.append(average)
         average = 0.0
-    
-"""
+
+
 pc._playfield.insert_piece(O((-1,-1)),(-1,-1))
 pc._playfield.insert_piece(O((1,-1)),(1,-1))
 pc._playfield.insert_piece(O((3,-1)),(3,-1))

@@ -8,6 +8,7 @@ import random
 from copy import deepcopy
 from torch.utils.data.dataset import Dataset
 from surface_area import surface_area
+from math import sqrt, log
 
 class Gameplays(Dataset):
     def __init__(self, data):
@@ -15,319 +16,59 @@ class Gameplays(Dataset):
     def __len__(self):
         return len(self.data)
     def __getitem__(self, index):
-        feature, label = self.data[index]
-        return feature, label
+        feature, label, _ = self.data[index]
+        return feature, torch.tensor([label])
 
-
-class MCTS_heuristics:
-    class State:
-        def __init__(self, value, terminal=False,  num_actions=4):
-            self.experiences = [value]
-            self.value = value
-            #self.variance = variance
-            self.child_nodes = [None]*num_actions
-            self.n = 1
-            self.terminal = terminal
-            #self.reward = reward
-            if terminal:
-                assert self.value == -2
-
-        def update_value(self):
-            self.value = np.mean(self.experiences)
-
-        def add_experience(self, value):
-            #self.prev_mean = self.value
-            self.experiences.append(value)
-            self.n += 1
-            self.update_value()
-            #self.variance = (self.variance * (self.n - 2) + (value - self.prev_mean)(value - self.mean)) / (self.n - 1)
-            
-    def __init__(self, pc, gamma, model=None):
-        self.model = model
-        self.pc = pc
-        self.gamma = gamma
-        if self.model is None:
-            self.root = MCTS_heuristics.State(self.get_rollout_value(pc))
-        else:
-            self.root = MCTS_heuristics.State(self.get_model_value(pc))
-        
-
-    def generate_a_game(self, num_iter=50, max_steps=500, stats_writer=None):
-        data = []
-        actual_data = []
-        total_reward = 0
-        steps = 0
-        action_stats = [0,0,0,0]
-        while not self.pc._game_over and steps < max_steps:
-            
-
-            action = self.search(self.pc, num_iter)
-
-            #values = []
-            #for node in self.root.child_nodes:
-            #    values.append(len(node.experiences))
-            #print(values)
-
-            state = get_new_board_state(self.pc.gamestate())
-            actual_data.append((state, self.root.value, action))
-            
-            action_stats[action] += 1
-            new_data, reward = self.make_move_remove_and_dump_unused_branch(action, self.pc)
-            data += new_data
-            total_reward += reward
-            steps += 1
-
-            print("%d step, %d action" % (steps, action))
-
-        if stats_writer is not None:
-            writer, game = stats_writer
-            writer.add_scalar('Rewards', total_reward, game)
-            writer.add_scalar('Steps', steps, game)
-            writer.add_scalar('Move Left', action_stats[0], game)
-            writer.add_scalar('Move Right', action_stats[1], game)
-            writer.add_scalar('Rotate', action_stats[2], game)
-            writer.add_scalar('Nothing', action_stats[3], game)
-            print("%d game, %f rewards, %d num of steps" % (game, total_reward, steps))
-            
-        return data, actual_data, total_reward
-
-    def make_move_remove_and_dump_unused_branch(self, action_taken, pc):
-        def dump_branch(node, pc):
-            state = get_new_board_state(pc.gamestate())
-            value = node.value
-            data = [(state, value)]
-            count = 0
-            for action in range(len(node.child_nodes)):
-                if node.child_nodes[action] is not None:
-                    count += 1
-                    new_pc = deepcopy(pc)
-                    if action == 0:
-                        new_pc.move_left()
-                    elif action == 1:
-                        new_pc.move_right()
-                    elif action == 2:
-                        new_pc.rotate_cw()
-                    new_pc.update()
-                    data += dump_branch(node.child_nodes[action], new_pc)
-            if not node.terminal and count == 0:
-                data = []
-            return data
-
-        state = get_new_board_state(pc.gamestate())
-        value = self.root.value
-        data = [(state, value)]
-        for action in range(len(self.root.child_nodes)):
-            if action == action_taken:
-                continue
-            data += dump_branch(self.root.child_nodes[action], deepcopy(pc))
-            
-        prev_score = pc._score
-        
-        if action_taken == 0:
-            pc.move_left()
-        elif action_taken == 1:
-            pc.move_right()
-        elif action_taken == 2:
-            pc.rotate_cw()
-        pc.update()
-        reward = pc._score - prev_score
-        
-        self.root = self.root.child_nodes[action_taken]
-        return data, reward
-        
-    def get_model_value(self, pc):
-        gs = pc.gamestate()
-        state = get_new_board_state(gs)
-        value = self.model(state.unsqueeze(0).cuda()).item()
-        return value
-
-    def get_rollout_value(self, pc):
-        pc = deepcopy(pc)
-        total_reward = 0
-        gamma = 1
-        while not pc._game_over:
-
-            prev_score = pc._score
-            bb = pc._playfield.get_bool_board()
-            bb = np.rot90(bb, k = 1)
-            prev_sa = surface_area(bb)
-            prev_closed_spaces = get_enclosed_space(pc.gamestate())
-            
-            action = random.randint(0,3)
-            if action == 0:
-                pc.move_left()
-            elif action == 1:
-                pc.move_right()
-            elif action == 2:
-                pc.rotate_cw()
-            
-            pc.update()
-            
-            bb = pc._playfield.get_bool_board()
-            bb = np.rot90(bb, k = 1)
-            sa = surface_area(bb)
-            closed_spaces = get_enclosed_space(pc.gamestate())
-            reward = (closed_spaces > prev_closed_spaces)*-1 + (prev_sa > sa)*1 + (pc._score > prev_score)*1
-            if pc._game_over:
-                reward = -2
-            total_reward += gamma * reward
-            gamma *= self.gamma
-        return total_reward
-
-    def search(self, pc, num_iter):
-        for _ in range(num_iter):
-            new_pc = deepcopy(pc)
-            if self.stimulate_to_leaf(self.root, new_pc) == True:
-                break
-            
-        best_action = 0
-        best_value = self.root.child_nodes[0].value
-        for action in range(1, len(self.root.child_nodes)):
-            if self.root.child_nodes[action].value > best_value:
-                best_value = self.root.child_nodes[action].value
-                best_action = action
-        return best_action
-
-    def stimulate_to_leaf(self, state_node, pc, new_piece_count=0, rotate_count=0, c=1.5):
-        if pc._game_over:
-            assert False
-        picked_index = None
-        picked_value = None
-        found = False
-        for action in range(len(state_node.child_nodes)):
-            if state_node.child_nodes[action] is not None:
-                if state_node.child_nodes[action].terminal:
-                    continue
-                if picked_index is None:
-                    picked_index = action
-                    picked_value = state_node.child_nodes[action].value + c * np.sqrt(state_node.n + 1) / (state_node.child_nodes[action].n + 1)
-                else:
-                    new_value = state_node.child_nodes[action].value + c * np.sqrt(state_node.n + 1) / (state_node.child_nodes[action].n + 1)
-                    if new_value > picked_value:
-                        picked_index = action
-                        picked_value = new_value
-
-            else:
-                if action == 2 and rotate_count > 3:
-                    continue
-                new_pc = deepcopy(pc)
-                
-                bb = new_pc._playfield.get_bool_board()
-                bb = np.rot90(bb, k = 1)
-                prev_sa = surface_area(bb)
-                prev_closed_spaces = get_enclosed_space(new_pc.gamestate())
-                
-                prev_score = new_pc._score
-
-                if action == 0:
-                    illegal = new_pc.move_left()
-                    if illegal == True:
-                        continue
-                elif action == 1:
-                    illegal = new_pc.move_right()
-                    if illegal == True:
-                        continue
-                elif action == 2:
-                    new_pc.rotate_cw()
-                    rotate_count += 1
-                status = new_pc.update()
-                if status:
-                    if new_piece_count == 1:
-                        continue
-                    new_piece_count += 1
-                    rotate_count = 0
-
-                bb = new_pc._playfield.get_bool_board()
-                bb = np.rot90(bb, k = 1)
-                sa = surface_area(bb)
-                closed_spaces = get_enclosed_space(new_pc.gamestate())
-                reward = (closed_spaces > prev_closed_spaces)*-1 + (prev_sa > sa)*1 + (new_pc._score > prev_score)*1
-                
-            
-                if self.model is None:
-                    child_value = self.get_rollout_value(new_pc)
-                else:
-                    child_value = self.get_model_value(new_pc)
-                    
-                if new_pc._game_over:
-                    reward = -2
-                    child_value = -2
-                    
-                state_node.child_nodes[action] = MCTS_heuristics.State(child_value, terminal=new_pc._game_over)
-                found = True
-                break
-                
-        if not found:
-            if picked_index is None:
-                return True
-            else:
-                action = picked_index
-                if action == 0:
-                    pc.move_left()
-                elif action == 1:
-                    pc.move_right()
-                elif action == 2:
-                    assert rotate_count <= 3
-                    pc.rotate_cw()
-                    rotate_count += 1
-
-                bb = pc._playfield.get_bool_board()
-                bb = np.rot90(bb, k = 1)
-                prev_sa = surface_area(bb)
-                prev_closed_spaces = get_enclosed_space(pc.gamestate())
-                
-                prev_score = pc._score
-                
-                status = pc.update()
-
-                bb = pc._playfield.get_bool_board()
-                bb = np.rot90(bb, k = 1)
-                sa = surface_area(bb)
-                closed_spaces = get_enclosed_space(pc.gamestate())
-                reward = (closed_spaces > prev_closed_spaces)*-1 + (prev_sa > sa)*1 + (pc._score > prev_score)*1
-                if status:
-                    new_piece_count += 1
-                    rotate_count = 0
-                child_value = self.stimulate_to_leaf(state_node.child_nodes[action], pc, new_piece_count, rotate_count)
-                if reward == True:
-                    return True                
-
-        state_node.add_experience(reward + self.gamma * child_value)
-        return reward + self.gamma * child_value
+class Gameplays_with_variance(Dataset):
+    def __init__(self, data):
+        self.data = data
+    def __len__(self):
+        return len(self.data)
+    def __getitem__(self, index):
+        feature, value, variance = self.data[index]
+        return feature, torch.tensor([value, variance])
 
 
 class MCTS:
     class State:
-        def __init__(self, value, terminal=False,  num_actions=4):
+        def __init__(self, value, reward, variance, terminal=False,  num_actions=4): #, speculative_pc=None):
             self.experiences = [value]
             self.value = value
-            #self.variance = variance
+            self.variance = variance
+            self.variance_experience = [variance]
             self.child_nodes = [None]*num_actions
             self.n = 1
             self.terminal = terminal
-            #self.reward = reward
+            self.reward = reward
+            #self.speculative_pc = speculative_pc
             if terminal:
                 assert self.value == 0
 
         def update_value(self):
             self.value = np.mean(self.experiences)
 
+        def update_variance(self):
+            self.variance = (1/ self.n**2) * np.sum(self.variance_experience)
+
         def add_experience(self, value):
             #self.prev_mean = self.value
             self.experiences.append(value)
+            #self.variance_experience.append(variance)
             self.n += 1
             self.update_value()
-            #self.variance = (self.variance * (self.n - 2) + (value - self.prev_mean)(value - self.mean)) / (self.n - 1)
+            #self.update_variance()
+            #self.variance = (self.variance * (self.n - 2) + (value - self.prev_mean)*(value - self.value)) / (self.n - 1)
             
     def __init__(self, pc, gamma, model=None):
         self.model = model
         self.pc = pc
         self.gamma = gamma
-        if self.model is None:
-            self.root = MCTS.State(self.get_rollout_value(pc))
-        else:
-            self.root = MCTS.State(self.get_model_value(pc))
-        
+        #if self.model is None:
+        #    self.root = MCTS.State(self.get_rollout_value(pc))
+        #else:
+        #    self.root = MCTS.State(self.get_model_value(pc))
+        value, variance = self.get_model_prediction(pc)
+        self.root = MCTS.State(value=value, variance=variance, reward=0)
 
     def generate_a_game(self, num_iter=50, max_steps=500, stats_writer=None):
         data = []
@@ -336,10 +77,7 @@ class MCTS:
         steps = 0
         action_stats = [0,0,0,0]
         while not self.pc._game_over and steps < max_steps:
-            
-
             action = self.search(self.pc, num_iter)
-
             #values = []
             #for node in self.root.child_nodes:
             #    values.append(len(node.experiences))
@@ -353,6 +91,11 @@ class MCTS:
             data += new_data
             total_reward += reward
             steps += 1
+
+        action_stats = np.array(action_stats)/steps
+        if action_stats[2] > 0.4:
+            data = []
+            actual_data = []
 
         if stats_writer is not None:
             writer, game = stats_writer
@@ -370,7 +113,8 @@ class MCTS:
         def dump_branch(node, pc):
             state = get_new_board_state(pc.gamestate())
             value = node.value
-            data = [(state, value)]
+            variance = node.variance
+            data = [(state, value, variance)]
             count = 0
             for action in range(len(node.child_nodes)):
                 if node.child_nodes[action] is not None:
@@ -384,15 +128,64 @@ class MCTS:
                         new_pc.rotate_cw()
                     new_pc.update()
                     data += dump_branch(node.child_nodes[action], new_pc)
-            if not node.terminal and count == 0:
+            if not node.terminal and (count == 0 or node.n < 10):
                 data = []
             return data
 
+        def dump_speculative_branch(node, pc, new_piece_count):
+            data = []
+            cut = False
+            count = 0
+            if node.speculative_pc is not None and new_piece_count == 1 and type(pc._active_piece) == type(node.speculative_pc._active_piece):
+                node.speculative_pc = None
+                return [], False
+            if node.speculative_pc is not None:
+                cut = True
+                state = get_new_board_state(pc.gamestate())
+                value = node.value
+                variance = node.variance
+                data = [(state, value, variance)]
+                for action in range(len(node.child_nodes)):
+                    if node.child_nodes[action] is not None:
+                        count += 1
+                        new_pc = deepcopy(pc)
+                        if action == 0:
+                            new_pc.move_left()
+                        elif action == 1:
+                            new_pc.move_right()
+                        elif action == 2:
+                            new_pc.rotate_cw()
+                        status = new_pc.update()
+                        data += dump_branch(node.child_nodes[action], new_pc)
+            else:
+                for action in range(len(node.child_nodes)):
+                    if node.child_nodes[action] is not None:
+                        count += 1
+                        new_pc = deepcopy(pc)
+                        if action == 0:
+                            new_pc.move_left()
+                        elif action == 1:
+                            new_pc.move_right()
+                        elif action == 2:
+                            new_pc.rotate_cw()
+                        status = new_pc.update()
+                        if status == True:
+                            new_piece_count += 1
+                            #assert new_piece_count != 1 or node.child_nodes[action].speculative_pc is not None
+                        new_data, need_cut = dump_speculative_branch(node.child_nodes[action], new_pc, new_piece_count = new_piece_count)
+                        data += new_data
+                        if need_cut:
+                            node.child_nodes[action] = None
+            if not node.terminal and count == 0:
+                data = []
+            return data, cut
+
         state = get_new_board_state(pc.gamestate())
         value = self.root.value
-        data = [(state, value)]
+        variance = self.root.variance
+        data = [(state, value, variance)]
         for action in range(len(self.root.child_nodes)):
-            if action == action_taken:
+            if action == action_taken or self.root.child_nodes[action] is None:
                 continue
             data += dump_branch(self.root.child_nodes[action], deepcopy(pc))
             
@@ -404,10 +197,40 @@ class MCTS:
             pc.move_right()
         elif action_taken == 2:
             pc.rotate_cw()
+            
         pc.update()
+        
         reward = pc._score - prev_score
         
         self.root = self.root.child_nodes[action_taken]
+
+        """
+        if status == True:
+            
+            #assert self.root.speculative_pc is None
+            for action in range(len(self.root.child_nodes)):
+                new_pc = deepcopy(pc)
+                if self.root.child_nodes[action] is None:
+                    continue
+                if action_taken == 0:
+                    new_pc.move_left()
+                elif action_taken == 1:
+                    new_pc.move_right()
+                elif action_taken == 2:
+                    new_pc.rotate_cw()
+                    
+                status = new_pc.update()
+                if status:
+                    piece_count = 1
+                    #assert self.root.child_nodes[action].speculative_pc is not None
+                else:
+                    piece_count = 0
+                    #assert self.root.child_nodes[action].speculative_pc is None
+                new_data, need_cut = dump_speculative_branch(self.root.child_nodes[action], new_pc, piece_count)
+                data += new_data
+                if need_cut:
+                    self.root.child_nodes[action] = None
+        """
         return data, reward
         
     def get_model_value(self, pc):
@@ -415,6 +238,27 @@ class MCTS:
         state = get_new_board_state(gs)
         value = self.model(state.unsqueeze(0).cuda()).item()
         return value
+
+    def get_model_prediction(self, pc):
+        gs = pc.gamestate()
+        state = get_new_board_state(gs)
+        if self.model is None:
+            value = self.get_rollout_value(pc)
+        else:
+            #v = []
+            #for _ in range(5):
+            #    result = self.model(state.unsqueeze(0).cuda())
+            #    value = result.item()
+            #    v.append(value)
+            #value = np.mean(v)
+            #variance = np.var(v, ddof=1)
+            
+            result = self.model(state.unsqueeze(0).cuda())
+            assert result.shape[0] == 1
+            value = result.item()
+            #variance = result[0, 1].item()
+        variance = 1.0
+        return value, variance
 
     def get_rollout_value(self, pc):
         pc = deepcopy(pc)
@@ -447,6 +291,7 @@ class MCTS:
                 #reward = -2
                 reward = 0
             reward = pc._score - prev_score
+            reward = [0, 40, 100, 300,  1200].index(reward)
             total_reward += gamma * reward
             gamma *= self.gamma
         return total_reward
@@ -460,6 +305,8 @@ class MCTS:
         best_action = 0
         best_value = self.root.child_nodes[0].value
         for action in range(1, len(self.root.child_nodes)):
+            if self.root.child_nodes[action] == None:
+                continue
             if self.root.child_nodes[action].value > best_value:
                 best_value = self.root.child_nodes[action].value
                 best_action = action
@@ -468,36 +315,31 @@ class MCTS:
     def stimulate_to_leaf(self, state_node, pc, new_piece_count=0, rotate_count=0, c=1.5):
         if pc._game_over:
             assert False
+        assert new_piece_count < 2
         picked_index = None
         picked_value = None
         found = False
+        action_values = []
         for action in range(len(state_node.child_nodes)):
             if state_node.child_nodes[action] is not None:
                 if state_node.child_nodes[action].terminal:
                     continue
-                if picked_index is None:
+                if state_node.n == 2:
                     picked_index = action
-                    picked_value = state_node.child_nodes[action].value + c * np.sqrt(state_node.n + 1) / (state_node.child_nodes[action].n + 1)
-                else:
-                    new_value = state_node.child_nodes[action].value + c * np.sqrt(state_node.n + 1) / (state_node.child_nodes[action].n + 1)
-                    if new_value > picked_value:
-                        picked_index = action
-                        picked_value = new_value
-
-                    #if random.random() < 0.2:
-                    #    picked_index = action
+                    continue
+                #q_star = 10 * log(1 - log(-log(1 - 1/(state_node.n - 1)) / log(2)) / log(22)) / log(41)
+                #c = sqrt(state_node.child_nodes[action].variance) * q_star
+                #q_hat = state_node.child_nodes[action].value + state_node.child_nodes[action].reward
+                #v = q_hat + c
+                v = (state_node.child_nodes[action].value * self.gamma + state_node.child_nodes[action].reward)/state_node.child_nodes[action].n + 1.5 * sqrt(log(state_node.n)/state_node.child_nodes[action].n)
+                action_values.append((action, v))
             else:
                 if action == 2 and rotate_count > 3:
                     continue
-                new_pc = deepcopy(pc)
                 
-                #bb = new_pc._playfield.get_bool_board()
-                #bb = np.rot90(bb, k = 1)
-                #prev_sa = surface_area(bb)
-                #prev_closed_spaces = get_enclosed_space(new_pc.gamestate())
-                
-                prev_score = new_pc._score
+                prev_score = pc._score
 
+                new_pc = deepcopy(pc)
                 if action == 0:
                     illegal = new_pc.move_left()
                     if illegal == True:
@@ -510,70 +352,75 @@ class MCTS:
                     new_pc.rotate_cw()
                     rotate_count += 1
                 status = new_pc.update()
-                if status == True:
-                    if new_piece_count == 1:
-                        continue
-                    new_piece_count += 1
-                    rotate_count = 0
 
-                #bb = new_pc._playfield.get_bool_board()
-                #bb = np.rot90(bb, k = 1)
-                #sa = surface_area(bb)
-                #closed_spaces = get_enclosed_space(new_pc.gamestate())
-                #reward = (closed_spaces > prev_closed_spaces)*-1 + (prev_sa > sa)*1 + (new_pc._score > prev_score)*1
                 
-                reward = new_pc._score - prev_score
-                if self.model is None:
-                    child_value = self.get_rollout_value(new_pc)
-                else:
-                    child_value = self.get_model_value(new_pc)
+
+                #spec_pc = None
+                if status == True:
+                    if new_piece_count != 0:
+                        continue #spec_pc = new_pc
+
                     
+                        
+                reward = new_pc._score - prev_score
+                reward = [0, 40, 100, 300,  1200].index(reward)
+                #if self.model is None:
+                #    child_value = self.get_rollout_value(new_pc)
+                #else:
+                #    child_value = self.get_model_value(new_pc)
+                child_value, child_variance = self.get_model_prediction(new_pc)   
                 if new_pc._game_over:
-                    #reward = -2
-                    #child_value = -2
                     reward = 0
                     child_value = 0
-                state_node.child_nodes[action] = MCTS.State(child_value, terminal=new_pc._game_over)
+                    child_variance = 0
+                state_node.child_nodes[action] = MCTS.State(child_value, variance=child_variance, reward=reward, terminal=new_pc._game_over) #, speculative_pc=spec_pc)
                 found = True
                 break
                 
         if not found:
-            if picked_index is None:
+            if len(action_values) == 0:
                 return True
             else:
-                action = picked_index
-                if action == 0:
-                    pc.move_left()
-                elif action == 1:
-                    pc.move_right()
-                elif action == 2:
-                    assert rotate_count <= 3
-                    pc.rotate_cw()
-                    rotate_count += 1
-
-                #bb = pc._playfield.get_bool_board()
-                #bb = np.rot90(bb, k = 1)
-                #prev_sa = surface_area(bb)
-                #prev_closed_spaces = get_enclosed_space(pc.gamestate())
+                found = False
+                action_values.sort(key=lambda x: x[1], reverse=True)
+                for action, _ in action_values:
+                    prev_score = pc._score
+                    #if state_node.child_nodes[action].speculative_pc is not None:
+                    #    new_pc = deepcopy(state_node.child_nodes[action].speculative_pc)
+                    #    reward = new_pc._score - prev_score
+                    #    new_piece_count += 1
+                    #    rotate_count = 0
+                    #    child_value = self.stimulate_to_leaf(state_node.child_nodes[action], new_pc, new_piece_count, rotate_count)
+                    new_pc = deepcopy(pc)
+                    
+                    new_new_piece_count = new_piece_count
+                    new_rotate_count = rotate_count
+                    
+                    if action == 0:
+                        new_pc.move_left()
+                    elif action == 1:
+                        new_pc.move_right()
+                    elif action == 2:
+                        assert rotate_count <= 3
+                        new_pc.rotate_cw()
+                        new_rotate_count += 1
+                        
                 
-                prev_score = pc._score
-                
-                status = pc.update()
-
-                #bb = pc._playfield.get_bool_board()
-                #bb = np.rot90(bb, k = 1)
-                #sa = surface_area(bb)
-                #closed_spaces = get_enclosed_space(pc.gamestate())
-                #reward = (closed_spaces > prev_closed_spaces)*-1 + (prev_sa > sa)*1 + (pc._score > prev_score)*1
-                
-                reward = pc._score - prev_score
-
-                if status == True:
-                    new_piece_count += 1
-                    rotate_count = 0
-                child_value = self.stimulate_to_leaf(state_node.child_nodes[action], pc, new_piece_count, rotate_count)
-                if reward == True:
-                    return True                
+                    status = new_pc.update()
+                    
+                    
+                    if status == True:
+                        new_new_piece_count += 1
+                        new_rotate_count = 0
+                    reward = new_pc._score - prev_score
+                    reward = [0, 40, 100, 300,  1200].index(reward)
+                    child_value = self.stimulate_to_leaf(state_node.child_nodes[action], new_pc, new_new_piece_count, new_rotate_count)
+                    if child_value == True:
+                        continue
+                    found = True
+                    break
+                if not found:
+                    return True
 
         state_node.add_experience(reward + self.gamma * child_value)
         return reward + self.gamma * child_value
@@ -849,7 +696,7 @@ class Model7(nn.Module):
         out = self.fc1(out)
         out = self.relu(out)
         out = self.fc2(out)
-        out = out.sigmoid() * 40
+        out = out.sigmoid()
         return out
 
 class Model8(nn.Module):
@@ -872,6 +719,132 @@ class Model8(nn.Module):
         out = self.fc2(out)
         return out
 
+class Model9(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.relu = nn.LeakyReLU()
+        self.conv1 = nn.Conv2d(3,16,3,1,1)
+        self.conv2 = nn.Conv2d(16,16,3,1,1)
+        self.fc1 = nn.Linear(3200,128)
+        self.fc2 = nn.Linear(128,2)
+        self.sp = nn.Softplus()
+    def forward(self, board):
+        board = self.conv1(board)
+        board = self.relu(board)
+        board = self.conv2(board)
+        board = self.relu(board)
+        out = board.reshape(board.shape[0],-1)
+        out = self.fc1(out)
+        out = self.relu(out)
+        out = self.fc2(out)
+        out = torch.transpose(torch.stack([out[:, 0], self.sp(out[:, 1])]), 0, 1)
+        return out
+
+class Model10(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.relu = nn.LeakyReLU()
+        self.conv1 = nn.Conv2d(3,16,3,1,1)
+        self.bn1 = nn.BatchNorm2d(16)
+        self.conv2 = nn.Conv2d(16,16,3,1,1)
+        self.bn2 = nn.BatchNorm2d(16)
+        self.fc1 = nn.Linear(3200,128)
+        self.bn3 = nn.BatchNorm1d(128)
+        self.fc2 = nn.Linear(128,2)
+        self.sp = nn.Softplus()
+    def forward(self, board):
+        board = self.bn1(self.conv1(board))
+        board = self.relu(board)
+        board = self.bn2(self.conv2(board))
+        board = self.relu(board)
+        out = board.reshape(board.shape[0],-1)
+        out = self.bn3(self.fc1(out))
+        out = self.relu(out)
+        out = self.fc2(out)
+        out = torch.transpose(torch.stack([out[:, 0], self.sp(out[:, 1])]), 0, 1)
+        return out
+
+class Model11(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.relu = nn.LeakyReLU()
+        self.conv1 = nn.Conv2d(3,16,3,1,1)
+        self.conv2 = nn.Conv2d(16,16,3,1,1)
+        self.fc1 = nn.Linear(3200,128)
+        self.fc2 = nn.Linear(128,1)
+    def forward(self, board):
+        board = self.conv1(board)
+        board = self.relu(board)
+        board = self.conv2(board)
+        board = self.relu(board)
+        out = board.reshape(board.shape[0],-1)
+        out = self.fc1(out)
+        out = self.relu(out)
+        out = self.fc2(out)
+        return out
+
+
+class Model12(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.relu = nn.LeakyReLU()
+        self.conv1 = nn.Conv2d(3,32,5,1,2)
+        self.conv2 = nn.Conv2d(32,32,3,1,1)
+        self.conv3 = nn.Conv2d(32,32,3,1,1)
+        self.fc1 = nn.Linear(6400,128)
+        self.fc2 = nn.Linear(128,1)
+    def forward(self, board):
+        board = self.conv1(board)
+        board = self.relu(board)
+        board = board + self.relu(self.conv2(board))
+        board = board + self.relu(self.conv3(board))
+        out = board.reshape(board.shape[0],-1)
+        out = self.fc1(out)
+        out = self.relu(out)
+        out = self.fc2(out)
+        return out
+
+class Model13(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.relu = nn.LeakyReLU()
+        self.conv1 = nn.Conv2d(3,16,3,1,1)
+        self.conv2 = nn.Conv2d(16,16,3,1,1)
+        self.fc1 = nn.Linear(3200,128)
+        self.fc2 = nn.Linear(128,2)
+    def forward(self, board):
+        board = self.conv1(board)
+        board = self.relu(board)
+        board = self.conv2(board)
+        board = self.relu(board)
+        out = board.reshape(board.shape[0],-1)
+        out = self.fc1(out)
+        out = self.relu(out)
+        out = self.fc2(out)
+        out = out.sigmoid()
+        return out
+
+class Model14(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.relu = nn.LeakyReLU()
+        self.conv1 = nn.Conv2d(3,16,3,1,1)
+        self.drop1 = nn.Dropout2d(0.5)
+        self.conv2 = nn.Conv2d(16,16,3,1,1)
+        self.drop2 = nn.Dropout2d(0.5)
+        self.fc1 = nn.Linear(3200,128)
+        self.drop3 = nn.Dropout(0.5)
+        self.fc2 = nn.Linear(128,1)
+    def forward(self, board):
+        board = self.drop1(self.conv1(board))
+        board = self.relu(board)
+        board = self.drop2(self.conv2(board))
+        board = self.relu(board)
+        out = board.reshape(board.shape[0],-1)
+        out = self.drop3(self.fc1(out))
+        out = self.relu(out)
+        out = self.fc2(out)
+        return out
 
 class ResNet(nn.Module):
     def __init__(self, state_size=216, action_size=7, hidden_size=216, num_hidden=2):
