@@ -12,6 +12,8 @@ import random
 from torch.utils.tensorboard import SummaryWriter
 writer = SummaryWriter("runs/test-vanillaMCTS")
 
+
+# Testing for vanillas MCTS
 game = 0
 num_iter=50
 while True:

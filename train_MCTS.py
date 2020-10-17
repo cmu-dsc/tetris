@@ -36,19 +36,15 @@ def train_dataset(datasets):
     average_norm = 0.0
     counter = 0
 
-    #criterion = nn.BCELoss(reduction='mean')
-    criterion = nn.SmoothL1Loss(reduction='mean')
     while c < 200:
         temp_total_training_loss = 0.0
         temp_average_norm = 0.0
 
         total_loss = 0
         for state, value in valid_loader:
-            predicted_value = model(state.cuda())
-            #value = torch.min(value.float(), torch.tensor([1.0])).cuda()
-            #value = torch.bernoulli(value)
-            #loss = - torch.mean( value * predicted_value.log() + (1.0 - value) * (1 - predicted_value).log())
-            loss = criterion(predicted_value, value.float().cuda())
+            predicted_value = model(state)
+            value = torch.min(value.float(), torch.tensor([1.0]))
+            loss = - torch.mean( value * predicted_value.log() + (1.0 - value) * (1 - predicted_value).log())
             total_loss += loss.item()
         total_loss /= len(valid_loader)
 
@@ -64,11 +60,9 @@ def train_dataset(datasets):
             counter += 1
         
         for state, value in train_loader:
-            predicted_value = model(state.cuda())
-            #value = torch.min(value.float(), torch.tensor([1.0])).cuda()
-            #value = torch.bernoulli(value)
-            #loss = - torch.mean( value * predicted_value.log() + (1.0 - value) * (1 - predicted_value).log())
-            loss = criterion(predicted_value, value.float().cuda())
+            predicted_value = model(state)
+            value = torch.min(value.float(), torch.tensor([1.0]))
+            loss = - torch.mean( value * predicted_value.log() + (1.0 - value) * (1 - predicted_value).log())
             optim.zero_grad()
             loss.backward()
             total_norm = 0
@@ -87,7 +81,7 @@ def train_dataset(datasets):
         
         if counter > 5:
             model.load_state_dict(model_temp.state_dict())
-            torch.save(model, "MCTS_value_cont_0.999.pth")
+            torch.save(model, "MCTS.pth")
             break
     writer.add_scalar('Training loss', total_training_loss, game)
     writer.add_scalar('Training Norm', average_norm, game)
@@ -95,10 +89,10 @@ def train_dataset(datasets):
     writer.add_scalar('Number of Epoch', c, game)
 
 
-writer = SummaryWriter("runs/MCTS_value_cont_0.999")
+writer = SummaryWriter("runs/MCTS3")
 
-model = torch.load("MMCTS_value_0.999_1200.pth")
-model_temp = torch.load("MMCTS_value_0.999_1200.pth")
+model = Model()
+model_temp = Model()
 game = 0
 datasets = []
 while True:
@@ -106,12 +100,12 @@ while True:
     pc.update()
     model.eval()
     tree = MCTS(model=model, pc=pc, gamma=0.999)
-    data, _, reward = tree.generate_a_game(num_iter=50, max_steps=1000, stats_writer=(writer, game))
+    data, _, reward = tree.generate_a_game(num_iter=50, max_steps=500, stats_writer=(writer, game))
     game += 1
     datasets.append(data)
     if game % 25 == 0:
         train_dataset(datasets)
         datasets = []
         if game % 100 == 0:
-            torch.save(model, "MCTS_value_0.999_cont_%d.pth" % game)
+            torch.save(model, "MCTS_%d.pth" % game)
         

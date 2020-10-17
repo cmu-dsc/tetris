@@ -13,8 +13,6 @@ import shutil
 
 model = torch.load("MCTS_value_soft_ce.pth").cuda()
 model.eval()
-#with open("highest","r") as f:
-#    highest_reward = int(f.read())
 
 highest_reward = 0
 while True:
