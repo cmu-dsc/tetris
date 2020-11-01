@@ -88,8 +88,8 @@ def train_dataset(datasets):
     writer.add_scalar('Validation loss', prev_valid_loss_average, game)
     writer.add_scalar('Number of Epoch', c, game)
 
-
-writer = SummaryWriter("runs/MCTS3")
+path = input("Enter a label for this training:")
+writer = SummaryWriter("runs/"+path)
 
 model = Model()
 model_temp = Model()
