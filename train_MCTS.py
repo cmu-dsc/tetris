@@ -8,9 +8,38 @@ from modeling import *
 from copy import deepcopy
 from torch.utils.data import DataLoader
 import random
+import os
 
 from torch.utils.tensorboard import SummaryWriter
 
+######## for testing ########
+import inspect
+from time import time
+from functools import wraps
+
+def measure_time(f):
+    '''
+    measure function runtime
+    https://stackoverflow.com/questions/51503672/decorator-for-timeit-timeit-method
+    '''
+
+    @wraps(f)
+    def _time_it(*args, **kwargs):
+        # name of function being decorated
+        funcname = inspect.getouterframes(inspect.currentframe())[1].function
+        # add args and kwargs
+        start = int(round(time() * 1000))
+        try:
+            return f(*args, **kwargs)
+        finally:
+            end_ = int(round(time() * 1000)) - start
+            TIMING_LOGGING_THRESHOLD_MS = 69  # only log slow functions
+            if end_ >= TIMING_LOGGING_THRESHOLD_MS:
+                print(f"{funcname}: {end_ if end_ > 0 else 0} ms")
+    return _time_it
+
+@measure_time
+######## testing part end ########
 def train_dataset(datasets):
     global game
     global writer
@@ -42,8 +71,10 @@ def train_dataset(datasets):
 
         total_loss = 0
         for state, value in valid_loader:
+            state = state.to(device)
+            value = value.to(device)
             predicted_value = model(state)
-            value = torch.min(value.float(), torch.tensor([1.0]))
+            value = torch.min(value.float(), torch.tensor([1.0]).to(device))
             loss = - torch.mean( value * predicted_value.log() + (1.0 - value) * (1 - predicted_value).log())
             total_loss += loss.item()
         total_loss /= len(valid_loader)
@@ -60,8 +91,10 @@ def train_dataset(datasets):
             counter += 1
         
         for state, value in train_loader:
+            state = state.to(device)
+            value = value.to(device)
             predicted_value = model(state)
-            value = torch.min(value.float(), torch.tensor([1.0]))
+            value = torch.min(value.float(), torch.tensor([1.0]).to(device))
             loss = - torch.mean( value * predicted_value.log() + (1.0 - value) * (1 - predicted_value).log())
             optim.zero_grad()
             loss.backward()
@@ -90,22 +123,29 @@ def train_dataset(datasets):
 
 path = input("Enter a label for this training:")
 writer = SummaryWriter("runs/"+path)
+print("Checking if CUDA is available:", torch.cuda.is_available())
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-model = Model()
-model_temp = Model()
+model = Model().to(device)
+model_temp = Model().to(device)
 game = 0
 datasets = []
+
 while True:
     pc = PlayfieldController()
     pc.update()
     model.eval()
-    tree = MCTS(model=model, pc=pc, gamma=0.999)
+    tree = MCTS(model=model.to(device), pc=pc, gamma=0.999)
     data, _, reward = tree.generate_a_game(num_iter=50, max_steps=500, stats_writer=(writer, game))
     game += 1
     datasets.append(data)
+
     if game % 25 == 0:
         train_dataset(datasets)
         datasets = []
         if game % 100 == 0:
             torch.save(model, "MCTS_%d.pth" % game)
+    
+
+
         
