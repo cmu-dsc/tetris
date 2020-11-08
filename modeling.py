@@ -9,6 +9,8 @@ from copy import deepcopy
 from torch.utils.data.dataset import Dataset
 from math import sqrt, log
 
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
 class Gameplays(Dataset):
     def __init__(self, data):
         self.data = data
@@ -328,7 +330,7 @@ def get_new_board_state(gamestate):
     inactive = torch.tensor(get_inactive_board(gamestate))
     active = torch.tensor(get_active_board(gamestate))
     empty = torch.logical_not(torch.logical_and(inactive, active))
-    return torch.stack([inactive, active, empty]).float()
+    return torch.stack([inactive, active, empty]).float().to(device)
 
 def get_next_piece_index(gamestate):
     piece = gamestate._next_piece
@@ -445,7 +447,7 @@ class ResNet(nn.Module):
                 nn.Linear(hidden_size, hidden_size),
                 nn.BatchNorm1d(hidden_size),
                 nn.LeakyReLU(inplace=True)))
-        self.fc_out = nn.Linear(hidden_size, action_size)
+        self.fc_out = nn.Linear(hidden_size, action_size) 
 
     def forward(self, x):
         x = self.fc_in(x)
