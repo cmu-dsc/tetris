@@ -73,10 +73,10 @@ class MCTS:
             writer, game = stats_writer
             writer.add_scalar('Rewards', total_reward, game)
             writer.add_scalar('Steps', steps, game)
-            writer.add_scalar('Move Left', action_stats[0], game)
-            writer.add_scalar('Move Right', action_stats[1], game)
-            writer.add_scalar('Rotate', action_stats[2], game)
-            writer.add_scalar('Nothing', action_stats[3], game)
+            # writer.add_scalar('Move Left', action_stats[0], game)
+            # writer.add_scalar('Move Right', action_stats[1], game)
+            # writer.add_scalar('Rotate', action_stats[2], game)
+            # writer.add_scalar('Nothing', action_stats[3], game)
             print("%d game, %f rewards, %d num of steps" % (game, total_reward, steps))
             
         return data, actual_data, total_reward
@@ -144,6 +144,8 @@ class MCTS:
     def get_model_value(self, pc):
         gs = pc.gamestate()
         state = get_new_board_state(gs)
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        state = state.to(device)
         value = self.model(state.unsqueeze(0)).item()
         return value
 
@@ -431,6 +433,40 @@ class Model(nn.Module):
         out = self.fc2(out)
         out = out.sigmoid()
         return out
+
+# class Model(nn.Module):
+#     def __init__(self):
+#         super().__init__()
+#         self.relu = nn.ReLU6()
+#         self.conv1 = nn.Conv2d(3,16,5,1,2)
+#         self.conv2 = nn.Conv2d(16,64,3,1,1)
+#         self.pool = nn.AvgPool2d(2,2)
+#         self.conv3 = nn.Conv2d(64,160,5,1,2)
+#         self.conv4 = nn.Conv2d(160,320,3,1,1)
+#         self.pool2 = nn.AvgPool2d(5,10)
+#         self.conv5 = nn.Conv2d(320,1280,1,1,0)
+#         self.conv6 = nn.Conv2d(1280,1,1,1,0)
+#         self.fc1 = nn.Linear(1280,128)
+#         self.fc2 = nn.Linear(128,1)
+#     def forward(self, board):
+#         board = self.conv1(board)
+#         board = self.relu(board)
+#         board = self.conv2(board)
+#         board = self.pool(board)
+#         board = self.relu(board)
+#         board = self.conv3(board)
+#         board = self.relu(board)
+#         board = self.conv4(board)
+#         board = self.pool2(board)
+#         # print(board.shape)
+#         board = self.relu(board)
+#         board = self.conv5(board)
+#         # print(board.shape)
+#         board = self.relu(board)
+#         board = self.conv6(board)
+#         out = board.sigmoid()
+#         # print(out.shape)
+#         return out
 
 
 class ResNet(nn.Module):
