@@ -434,41 +434,6 @@ class Model(nn.Module):
         out = out.sigmoid()
         return out
 
-# class Model(nn.Module):
-#     def __init__(self):
-#         super().__init__()
-#         self.relu = nn.ReLU6()
-#         self.conv1 = nn.Conv2d(3,16,5,1,2)
-#         self.conv2 = nn.Conv2d(16,64,3,1,1)
-#         self.pool = nn.AvgPool2d(2,2)
-#         self.conv3 = nn.Conv2d(64,160,5,1,2)
-#         self.conv4 = nn.Conv2d(160,320,3,1,1)
-#         self.pool2 = nn.AvgPool2d(5,10)
-#         self.conv5 = nn.Conv2d(320,1280,1,1,0)
-#         self.conv6 = nn.Conv2d(1280,1,1,1,0)
-#         self.fc1 = nn.Linear(1280,128)
-#         self.fc2 = nn.Linear(128,1)
-#     def forward(self, board):
-#         board = self.conv1(board)
-#         board = self.relu(board)
-#         board = self.conv2(board)
-#         board = self.pool(board)
-#         board = self.relu(board)
-#         board = self.conv3(board)
-#         board = self.relu(board)
-#         board = self.conv4(board)
-#         board = self.pool2(board)
-#         # print(board.shape)
-#         board = self.relu(board)
-#         board = self.conv5(board)
-#         # print(board.shape)
-#         board = self.relu(board)
-#         board = self.conv6(board)
-#         out = board.sigmoid()
-#         # print(out.shape)
-#         return out
-
-
 class ResNet(nn.Module):
     def __init__(self, state_size=216, action_size=7, hidden_size=216, num_hidden=2):
         super().__init__()
